@@ -39,9 +39,15 @@ function inicializarNuevaPieza() {
     listaFragmentos.innerHTML = '<p>No hay fragmentos agregados</p>';
   }
 
-  const historial = document.getElementById('historial');
-  if (historial) {
-    historial.innerHTML = '<p>No hay sesiones registradas</p>';
+  const listaSesiones = document.getElementById('listaSesiones');
+  if (listaSesiones) {
+    listaSesiones.innerHTML = '<p>No hay sesiones registradas</p>';
+  }
+
+  // Establecer fecha actual
+  const sFecha = document.getElementById('sFecha');
+  if (sFecha) {
+    sFecha.valueAsDate = new Date();
   }
 }
 
@@ -81,22 +87,89 @@ async function cargarPieza(piezaId) {
     // Cargar historial de sesiones
     mostrarHistorial(piezaId);
 
-    // Configurar evento guardar pieza
-    const btnGuardarPieza = document.getElementById('btnGuardarPieza');
-    if (btnGuardarPieza) {
-      btnGuardarPieza.addEventListener('click', guardarPieza);
+    // Establecer fecha actual en sesión
+    const sFecha = document.getElementById('sFecha');
+    if (sFecha) {
+      sFecha.valueAsDate = new Date();
     }
 
-    // Configurar evento agregar fragmento
-    const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
-    if (btnAgregarFragmento) {
-      btnAgregarFragmento.addEventListener('click', agregarFragmento);
-    }
+    // Configurar eventos
+    configurarEventos();
 
   } catch (error) {
     console.error('Error al cargar pieza:', error);
     alert('Error al cargar la pieza');
   }
+}
+
+// ===== CONFIGURAR EVENTOS =====
+function configurarEventos() {
+  // Configurar evento guardar pieza
+  const btnGuardarPieza = document.getElementById('btnGuardarPieza');
+  if (btnGuardarPieza) {
+    btnGuardarPieza.removeEventListener('click', guardarPieza);
+    btnGuardarPieza.addEventListener('click', guardarPieza);
+  }
+
+  // Configurar evento agregar fragmento
+  const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
+  if (btnAgregarFragmento) {
+    btnAgregarFragmento.removeEventListener('click', agregarFragmento);
+    btnAgregarFragmento.addEventListener('click', agregarFragmento);
+  }
+
+  // Configurar eventos temporizador
+  const btnIniciar = document.querySelector('[data-accion="iniciar-temporizador"]');
+  const btnPausar = document.querySelector('[data-accion="pausar-temporizador"]');
+  const btnDetener = document.querySelector('[data-accion="detener-temporizador"]');
+
+  if (btnIniciar) {
+    btnIniciar.removeEventListener('click', iniciarTemporizador);
+    btnIniciar.addEventListener('click', iniciarTemporizador);
+  }
+  if (btnPausar) {
+    btnPausar.removeEventListener('click', pausarTemporizador);
+    btnPausar.addEventListener('click', pausarTemporizador);
+  }
+  if (btnDetener) {
+    btnDetener.removeEventListener('click', detenerTemporizador);
+    btnDetener.addEventListener('click', detenerTemporizador);
+  }
+
+  // Configurar evento guardar sesión
+  const btnGuardarSesion = document.querySelector('[data-accion="guardar-sesion"]');
+  if (btnGuardarSesion) {
+    btnGuardarSesion.removeEventListener('click', guardarSesion);
+    btnGuardarSesion.addEventListener('click', guardarSesion);
+  }
+
+  // Configurar eventos bolas de progreso
+  document.querySelectorAll('.btn-progreso').forEach(btn => {
+    btn.removeEventListener('click', seleccionarProgreso);
+    btn.addEventListener('click', seleccionarProgreso);
+  });
+
+  // Configurar metrónomo
+  const btnMetronomo = document.getElementById('btnMetronomo');
+  if (btnMetronomo) {
+    btnMetronomo.removeEventListener('click', toggleMetronomo);
+    btnMetronomo.addEventListener('click', toggleMetronomo);
+  }
+
+  const bpmInput = document.getElementById('sMetronomoBPM');
+  if (bpmInput) {
+    bpmInput.removeEventListener('change', actualizarMetronomo);
+    bpmInput.addEventListener('change', actualizarMetronomo);
+  }
+
+  const compasSelect = document.getElementById('sMetronomorCompas');
+  if (compasSelect) {
+    compasSelect.removeEventListener('change', actualizarMetronomo);
+    compasSelect.addEventListener('change', actualizarMetronomo);
+  }
+
+  // Inicializar indicador visual del metrónomo
+  actualizarIndicadorPulsos();
 }
 
 // ===== CARGAR FRAGMENTOS EN SELECT =====
@@ -225,7 +298,7 @@ async function borrarFragmento(fragmentoId, piezaId) {
   }
 }
 
-// ===== INICIAR TEMPORIZADOR =====
+// ===== TEMPORIZADOR =====
 let intervalo = null;
 let tiempoSegundos = 0;
 
@@ -238,7 +311,6 @@ function iniciarTemporizador() {
   }, 1000);
 }
 
-// ===== PAUSAR TEMPORIZADOR =====
 function pausarTemporizador() {
   if (intervalo) {
     clearInterval(intervalo);
@@ -246,23 +318,153 @@ function pausarTemporizador() {
   }
 }
 
-// ===== DETENER TEMPORIZADOR =====
 function detenerTemporizador() {
   pausarTemporizador();
   tiempoSegundos = 0;
   actualizarDisplayTiempo();
 }
 
-// ===== ACTUALIZAR DISPLAY DE TIEMPO =====
 function actualizarDisplayTiempo() {
   const horas = Math.floor(tiempoSegundos / 3600);
   const minutos = Math.floor((tiempoSegundos % 3600) / 60);
   const segundos = tiempoSegundos % 60;
 
-  const displayTiempo = document.getElementById('displayTiempo');
+  const displayTiempo = document.getElementById('tiempoDisplay');
   if (displayTiempo) {
     displayTiempo.textContent = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
   }
+}
+
+// ===== METRÓNOMO =====
+let metronomeInterval = null;
+let metronomeActive = false;
+let metronomoPulsoActual = 0;
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function reproducirSonidoMetronomo(esFuerte = false) {
+  const now = audioContext.currentTime;
+  const osc = audioContext.createOscillator();
+  const env = audioContext.createGain();
+
+  osc.connect(env);
+  env.connect(audioContext.destination);
+
+  if (esFuerte) {
+    osc.frequency.value = 1200; // Frecuencia más alta para pulso fuerte
+    env.gain.setValueAtTime(0.4, now);
+  } else {
+    osc.frequency.value = 800; // Frecuencia más baja para pulso débil
+    env.gain.setValueAtTime(0.2, now);
+  }
+
+  env.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+  osc.start(now);
+  osc.stop(now + 0.1);
+}
+
+function actualizarIndicadorPulsos() {
+  const compas = parseInt(document.getElementById('sMetronomorCompas').value);
+  const container = document.getElementById('metronomoPulsos');
+
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  for (let i = 0; i < compas; i++) {
+    const pulso = document.createElement('div');
+    pulso.className = 'pulso';
+    if (i === metronomoPulsoActual) {
+      pulso.classList.add('activo');
+    }
+    if (i === 0) {
+      pulso.classList.add('fuerte');
+    }
+    container.appendChild(pulso);
+  }
+}
+
+function toggleMetronomo() {
+  const btnMetronomo = document.getElementById('btnMetronomo');
+  const bpmInput = document.getElementById('sMetronomoBPM');
+  const compasSelect = document.getElementById('sMetronomorCompas');
+  const bpm = parseInt(bpmInput.value);
+  const compas = parseInt(compasSelect.value);
+
+  if (bpm < 30 || bpm > 300) {
+    alert('BPM debe estar entre 30 y 300');
+    return;
+  }
+
+  if (metronomeActive) {
+    // Detener metrónomo
+    clearInterval(metronomeInterval);
+    metronomeActive = false;
+    metronomoPulsoActual = 0;
+    btnMetronomo.classList.remove('activo');
+    btnMetronomo.textContent = 'Metrónomo';
+    actualizarIndicadorPulsos();
+  } else {
+    // Iniciar metrónomo
+    metronomeActive = true;
+    metronomoPulsoActual = 0;
+    btnMetronomo.classList.add('activo');
+    btnMetronomo.textContent = 'Metrónomo (activo)';
+
+    const intervalo = (60 / bpm) * 1000; // Convertir BPM a milisegundos
+
+    metronomeInterval = setInterval(() => {
+      const esFuerte = metronomoPulsoActual === 0;
+      reproducirSonidoMetronomo(esFuerte);
+      actualizarIndicadorPulsos();
+
+      metronomoPulsoActual++;
+      if (metronomoPulsoActual >= compas) {
+        metronomoPulsoActual = 0;
+      }
+    }, intervalo);
+
+    actualizarIndicadorPulsos();
+  }
+}
+
+function actualizarMetronomo() {
+  if (metronomeActive) {
+    clearInterval(metronomeInterval);
+    const bpm = parseInt(document.getElementById('sMetronomoBPM').value);
+    const compas = parseInt(document.getElementById('sMetronomorCompas').value);
+    const intervalo = (60 / bpm) * 1000;
+    
+    metronomoPulsoActual = 0;
+    metronomeInterval = setInterval(() => {
+      const esFuerte = metronomoPulsoActual === 0;
+      reproducirSonidoMetronomo(esFuerte);
+      actualizarIndicadorPulsos();
+
+      metronomoPulsoActual++;
+      if (metronomoPulsoActual >= compas) {
+        metronomoPulsoActual = 0;
+      }
+    }, intervalo);
+  } else {
+    metronomoPulsoActual = 0;
+    actualizarIndicadorPulsos();
+  }
+}
+
+// ===== SELECCIONAR PROGRESO =====
+function seleccionarProgreso() {
+  // Desactivar todos los botones
+  document.querySelectorAll('.btn-progreso').forEach(b => {
+    b.classList.remove('activo');
+  });
+
+  // Activar el botón clickeado
+  this.classList.add('activo');
+
+  // Guardar el valor en el input hidden
+  const progreso = this.getAttribute('data-progreso');
+  document.getElementById('sProgreso').value = progreso;
 }
 
 // ===== GUARDAR SESIÓN =====
@@ -271,6 +473,7 @@ async function guardarSesion() {
     const piezaId = window.piezaIdActual;
     const fragmentoId = document.getElementById('sFragmento').value;
     const progresoInput = document.getElementById('sProgreso').value;
+    const sFecha = document.getElementById('sFecha').value;
 
     if (!piezaId) {
       alert('Debes tener una pieza cargada');
@@ -287,19 +490,29 @@ async function guardarSesion() {
       return;
     }
 
-    const sentimientos = document.getElementById('sSentimientos').value || '';
+    if (!sFecha) {
+      alert('Selecciona una fecha');
+      return;
+    }
+
+    // Recopilar sentimientos seleccionados
+    const sentimientos = [];
+    document.querySelectorAll('input[name="sentimientos"]:checked').forEach(cb => {
+      sentimientos.push(cb.value);
+    });
+
     const notas = document.getElementById('sNotas').value || '';
-    const grabacion = document.getElementById('sGrabacion').value || '';
+    const grabado = document.getElementById('sGrabado').checked ? 'Sí' : 'No';
 
     const sesion = {
       id: Date.now().toString(),
       piezaId: piezaId,
       fragmentoId: fragmentoId,
-      fecha: new Date().toISOString(),
+      fecha: sFecha,
       progreso: progresoInput,
-      sentimientos: sentimientos,
+      sentimientos: sentimientos.join(', '),
       notas: notas,
-      grabacion: grabacion,
+      grabado: grabado,
       segundos: tiempoSegundos
     };
 
@@ -309,10 +522,13 @@ async function guardarSesion() {
     await tx.done;
 
     // Limpiar campos de sesión
-    document.getElementById('sSentimientos').value = '';
+    document.getElementById('sFragmento').value = '';
     document.getElementById('sNotas').value = '';
-    document.getElementById('sGrabacion').value = '';
     document.getElementById('sProgreso').value = '';
+    document.getElementById('sGrabado').checked = false;
+    document.querySelectorAll('input[name="sentimientos"]').forEach(cb => {
+      cb.checked = false;
+    });
     
     // Resetear bolas de progreso
     document.querySelectorAll('.btn-progreso').forEach(btn => {
@@ -344,39 +560,42 @@ async function mostrarHistorial(piezaId) {
     const sesiones = await tx.objectStore('sesiones').getAll();
 
     const sesionesFiltradasPorPieza = sesiones.filter(s => s.piezaId === piezaId);
-    const historialDiv = document.getElementById('historial');
+    const listaSesionesDiv = document.getElementById('listaSesiones');
 
-    if (!historialDiv) return;
+    if (!listaSesionesDiv) return;
 
     if (sesionesFiltradasPorPieza.length === 0) {
-      historialDiv.innerHTML = '<p>No hay sesiones registradas</p>';
+      listaSesionesDiv.innerHTML = '<p>No hay sesiones registradas</p>';
       return;
     }
 
-    let html = '<h3>Historial de sesiones</h3>';
-    html += '<ul>';
+    let html = '';
 
     sesionesFiltradasPorPieza.forEach(sesion => {
       const fecha = new Date(sesion.fecha).toLocaleDateString('es-ES');
       const tiempo = formatearTiempo(sesion.segundos);
-      const fragmentoNombre = obtenerNombreFragmento(db, sesion.fragmentoId);
+      const fragmentoNombre = obtenerNombreFragmentoSync(db, sesion.fragmentoId);
 
       html += `
-        <li>
-          <p><strong>Fecha:</strong> ${fecha}</p>
-          <p><strong>Fragmento:</strong> ${fragmentoNombre || 'Sin nombre'}</p>
-          <p><strong>Tiempo:</strong> ${tiempo}</p>
-          <p><strong>Estado:</strong> ${sesion.progreso || '-'}</p>
-          <p><strong>Sentimientos:</strong> ${sesion.sentimientos || '-'}</p>
-          <p><strong>Notas:</strong> ${sesion.notas || '-'}</p>
-          <p><strong>Grabación:</strong> ${sesion.grabacion || '-'}</p>
-          <button onclick="borrarSesion('${sesion.id}', '${piezaId}')">Borrar</button>
-        </li>
+        <div class="sesion-item">
+          <div class="sesion-header">
+            <div>
+              <strong>${fecha}</strong> - ${fragmentoNombre || 'Sin nombre'}
+            </div>
+            <div class="sesion-tiempo">${tiempo}</div>
+          </div>
+          <div class="sesion-detalle">
+            <p><strong>Estado:</strong> ${sesion.progreso || '-'}</p>
+            ${sesion.sentimientos ? `<p><strong>Sentimientos:</strong> ${sesion.sentimientos}</p>` : ''}
+            ${sesion.notas ? `<p><strong>Notas:</strong> ${sesion.notas}</p>` : ''}
+            <p><strong>¿Grabado?</strong> ${sesion.grabado || '-'}</p>
+            <button onclick="borrarSesion('${sesion.id}', '${piezaId}')" class="btn-eliminar">Borrar</button>
+          </div>
+        </div>
       `;
     });
 
-    html += '</ul>';
-    historialDiv.innerHTML = html;
+    listaSesionesDiv.innerHTML = html;
 
   } catch (error) {
     console.error('Error al mostrar historial:', error);
@@ -448,50 +667,6 @@ async function guardarPieza() {
   }
 }
 
-// ===== BORRAR PIEZA =====
-async function borrarPieza() {
-  if (!confirm('¿Estás seguro de que deseas borrar esta pieza y todas sus sesiones?')) {
-    return;
-  }
-
-  try {
-    const piezaId = window.piezaIdActual;
-    const db = await abrirDB();
-
-    // Borrar pieza
-    let tx = db.transaction('piezas', 'readwrite');
-    await tx.objectStore('piezas').delete(piezaId);
-    await tx.done;
-
-    // Borrar fragmentos
-    tx = db.transaction('fragmentos', 'readwrite');
-    const fragmentos = await tx.objectStore('fragmentos').getAll();
-    fragmentos.forEach(f => {
-      if (f.piezaId === piezaId) {
-        tx.objectStore('fragmentos').delete(f.id);
-      }
-    });
-    await tx.done;
-
-    // Borrar sesiones
-    tx = db.transaction('sesiones', 'readwrite');
-    const sesiones = await tx.objectStore('sesiones').getAll();
-    sesiones.forEach(s => {
-      if (s.piezaId === piezaId) {
-        tx.objectStore('sesiones').delete(s.id);
-      }
-    });
-    await tx.done;
-
-    alert('Pieza borrada correctamente');
-    window.location.href = 'index.html';
-
-  } catch (error) {
-    console.error('Error al borrar pieza:', error);
-    alert('Error al borrar pieza');
-  }
-}
-
 // ===== ACTUALIZAR TIEMPO TOTAL =====
 async function actualizarTiempoTotal(db, piezaId) {
   try {
@@ -545,16 +720,19 @@ async function obtenerFragmentos(db, piezaId) {
   });
 }
 
-async function obtenerNombreFragmento(db, fragmentoId) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('fragmentos', 'readonly');
-    const request = tx.objectStore('fragmentos').get(fragmentoId);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const fragmento = request.result;
-      resolve(fragmento ? fragmento.nombre : null);
-    };
-  });
+function obtenerNombreFragmentoSync(db, fragmentoId) {
+  const tx = db.transaction('fragmentos', 'readonly');
+  const request = tx.objectStore('fragmentos').get(fragmentoId);
+  let fragmentoNombre = 'Sin nombre';
+
+  request.onsuccess = () => {
+    const fragmento = request.result;
+    if (fragmento) {
+      fragmentoNombre = fragmento.nombre;
+    }
+  };
+
+  return fragmentoNombre;
 }
 
 // ===== FORMATEAR TIEMPO =====
@@ -577,32 +755,4 @@ function mostrarVista(vista) {
   if (vistaElement) {
     vistaElement.style.display = 'block';
   }
-
-  // Actualizar botones activos
-  document.querySelectorAll('[data-vista-btn]').forEach(btn => {
-    btn.classList.remove('activo');
-  });
-  const btnActivo = document.querySelector(`[data-vista-btn="${vista}"]`);
-  if (btnActivo) {
-    btnActivo.classList.add('activo');
-  }
 }
-
-// ===== MANEJO DE BOLAS DE PROGRESO =====
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.btn-progreso').forEach(btn => {
-    btn.addEventListener('click', function() {
-      // Desactivar todos los botones
-      document.querySelectorAll('.btn-progreso').forEach(b => {
-        b.classList.remove('activo');
-      });
-
-      // Activar el botón clickeado
-      this.classList.add('activo');
-
-      // Guardar el valor en el input hidden
-      const progreso = this.getAttribute('data-progreso');
-      document.getElementById('sProgreso').value = progreso;
-    });
-  });
-});
