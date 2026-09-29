@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await cargarSesiones();
   await cargarDatosInforme();
   configurarEventos();
-  verificarAnalisisCompleto();
 });
 
 async function cargarPieza() {
@@ -39,6 +38,9 @@ async function cargarPieza() {
     document.getElementById('pPuntosDificiles').value = pieza.puntosDificiles || '';
     document.getElementById('pAcompanamiento').value = pieza.acompanamiento || '';
 
+    // Actualizar título de la página
+    document.getElementById('tituloPieza').textContent = pieza.titulo;
+
     // Mostrar tiempo total
     const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
     document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
@@ -49,23 +51,6 @@ async function cargarPieza() {
   } catch (error) {
     console.error('Error al cargar pieza:', error);
   }
-}
-
-function verificarAnalisisCompleto() {
-  const titulo = document.getElementById('pTitulo').value.trim();
-  const botonesVista = document.querySelectorAll('.btn-vista');
-
-  botonesVista.forEach(btn => {
-    if (btn.dataset.vista === 'analisis') {
-      btn.disabled = false;
-    } else {
-      // Bloquear si no hay título
-      btn.disabled = !titulo;
-    }
-  });
-
-  // Escuchar cambios en el título
-  document.getElementById('pTitulo').addEventListener('input', verificarAnalisisCompleto);
 }
 
 async function cargarFragmentos(fragmentos) {
@@ -204,6 +189,40 @@ async function eliminarSesion(sesionId) {
   }
 }
 
+async function guardarPieza() {
+  const titulo = document.getElementById('pTitulo').value.trim();
+  
+  if (!titulo) {
+    alert('Por favor ingresa un título');
+    return;
+  }
+
+  try {
+    const pieza = await obtenerPiezaDB(idPiezaActual);
+    
+    pieza.titulo = titulo;
+    pieza.compositor = document.getElementById('pCompositor').value;
+    pieza.tonalidad = document.getElementById('pTonalidad').value;
+    pieza.compas = document.getElementById('pCompas').value;
+    pieza.extension = document.getElementById('pExtension').value;
+    pieza.fechaInicio = document.getElementById('pFechaInicio').value;
+    pieza.estructura = document.getElementById('pEstructura').value;
+    pieza.puntosDificiles = document.getElementById('pPuntosDificiles').value;
+    pieza.acompanamiento = document.getElementById('pAcompanamiento').value;
+
+    await guardarPiezaDB(pieza);
+    
+    // Actualizar título de la página
+    document.getElementById('tituloPieza').textContent = pieza.titulo;
+    
+    alert('Cambios guardados correctamente');
+
+  } catch (error) {
+    console.error('Error al guardar pieza:', error);
+    alert('Error al guardar pieza');
+  }
+}
+
 async function guardarSesion() {
   const fecha = document.getElementById('sFecha').value;
   const fragmento = document.getElementById('sFragmento').value;
@@ -303,44 +322,20 @@ async function calcularTiempoTotal(pieceId) {
   return sesionesFiltradasOrdenadas.reduce((sum, s) => sum + (s.tiempo || 0), 0);
 }
 
-function cambiarVista(vista) {
-  document.getElementById('vistaAnalisis').style.display = 'none';
-  document.getElementById('vistaFragmentos').style.display = 'none';
-  document.getElementById('vistaSesiones').style.display = 'none';
-  document.getElementById('vistaInforme').style.display = 'none';
-
-  document.querySelectorAll('.btn-vista').forEach(btn => btn.classList.remove('activo'));
-
-  if (vista === 'analisis') {
-    document.getElementById('vistaAnalisis').style.display = 'block';
-    document.querySelector('[data-vista="analisis"]').classList.add('activo');
-  } else if (vista === 'fragmentos') {
-    document.getElementById('vistaFragmentos').style.display = 'block';
-    document.querySelector('[data-vista="fragmentos"]').classList.add('activo');
-  } else if (vista === 'sesiones') {
-    document.getElementById('vistaSesiones').style.display = 'block';
-    document.querySelector('[data-vista="sesiones"]').classList.add('activo');
-  } else if (vista === 'informe') {
-    document.getElementById('vistaInforme').style.display = 'block';
-    document.querySelector('[data-vista="informe"]').classList.add('activo');
-  }
-}
-
 function configurarEventos() {
-  document.querySelectorAll('.btn-vista').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (!btn.disabled) {
-        const vista = btn.dataset.vista;
-        cambiarVista(vista);
-      }
-    });
-  });
+  // Botón guardar pieza
+  const btnGuardarPieza = document.getElementById('btnGuardarPieza');
+  if (btnGuardarPieza) {
+    btnGuardarPieza.addEventListener('click', guardarPieza);
+  }
 
+  // Botón agregar fragmento
   const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
   if (btnAgregarFragmento) {
     btnAgregarFragmento.addEventListener('click', agregarFragmento);
   }
 
+  // Botones temporizador
   const btnIniciar = document.querySelector('[data-accion="iniciar-temporizador"]');
   const btnPausar = document.querySelector('[data-accion="pausar-temporizador"]');
   const btnDetener = document.querySelector('[data-accion="detener-temporizador"]');
@@ -356,11 +351,22 @@ function configurarEventos() {
     descargarPDFInforme(nombrePieza);
   });
 
+  // Botón vista informe
+  const btnVistaInforme = document.querySelector('[data-vista="informe"]');
+  if (btnVistaInforme) {
+    btnVistaInforme.addEventListener('click', () => {
+      document.getElementById('vistaInforme').style.display = 'block';
+      btnVistaInforme.classList.add('activo');
+    });
+  }
+
+  // Fecha automática
   const inputFecha = document.getElementById('sFecha');
   if (inputFecha && !inputFecha.value) {
     inputFecha.value = new Date().toISOString().split('T')[0];
   }
 
+  // Cambiar campo de enfoque
   const selectEnfoque = document.getElementById('sEnfoque');
   const otroEnfoqueDiv = document.getElementById('otroEnfoqueDiv');
   if (selectEnfoque && otroEnfoqueDiv) {

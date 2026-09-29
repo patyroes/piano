@@ -64,203 +64,193 @@
           <strong id="tiempoTotalPieza">0h 0m 0s</strong>
         </div>
 
-        <!-- PESTAÑAS DE NAVEGACIÓN -->
-        <div class="pestanas">
-          <button class="btn-vista activo" data-vista="analisis">Análisis</button>
-          <button class="btn-vista" data-vista="fragmentos">Fragmentos</button>
-          <button class="btn-vista" data-vista="sesiones">Sesiones</button>
-          <button class="btn-vista" data-vista="informe">Informe</button>
-        </div>
-
-        <!-- VISTA 1: ANÁLISIS PREVIO -->
-        <div id="vistaAnalisis" class="vista-contenido">
-          <section class="tarjeta">
-            <h2>1. ANÁLISIS PREVIO</h2>
-            <form id="formPieza">
-              <div class="tarjeta_cuerpo rejilla">
-                <div>
-                  <label for="pTitulo">Título</label>
-                  <input type="text" id="pTitulo" class="input" required>
-                </div>
-                <div>
-                  <label for="pCompositor">Compositor</label>
-                  <input type="text" id="pCompositor" class="input">
-                </div>
-                <div>
-                  <label for="pTonalidad">Tonalidad</label>
-                  <input type="text" id="pTonalidad" class="input">
-                </div>
-                <div>
-                  <label for="pCompas">Compás</label>
-                  <input type="text" id="pCompas" class="input">
-                </div>
-                <div>
-                  <label for="pExtension">Extensión (nº de compases)</label>
-                  <input type="number" id="pExtension" class="input">
-                </div>
-                <div>
-                  <label for="pFechaInicio">Fecha de inicio</label>
-                  <input type="date" id="pFechaInicio" class="input">
-                </div>
-              </div>
-
-              <div class="tarjeta_cuerpo">
-                <label for="pEstructura">Estructura</label>
-                <textarea id="pEstructura" class="input"></textarea>
-              </div>
-
-              <div class="tarjeta_cuerpo">
-                <label for="pPuntosDificiles">Puntos difíciles</label>
-                <textarea id="pPuntosDificiles" class="input"></textarea>
-              </div>
-
-              <div class="tarjeta_cuerpo">
-                <label for="pAcompanamiento">Acompañamiento</label>
-                <textarea id="pAcompanamiento" class="input"></textarea>
-              </div>
-
-              <div class="tarjeta_cuerpo">
-                <button type="button" class="btn btn-primario" id="btnGuardarPieza">Guardar cambios</button>
-              </div>
-            </form>
-          </section>
-        </div>
-
-        <!-- VISTA 2: FRAGMENTOS -->
-        <div id="vistaFragmentos" class="vista-contenido" style="display: none;">
-          <section class="tarjeta">
-            <h2>2. FRAGMENTOS</h2>
-            
+        <!-- SECCIÓN 1: ANÁLISIS PREVIO (SIN PESTAÑA) -->
+        <section class="tarjeta">
+          <h2>1. ANÁLISIS PREVIO</h2>
+          <form id="formPieza">
             <div class="tarjeta_cuerpo rejilla">
               <div>
-                <label for="sFNombre">Nombre del fragmento</label>
-                <input type="text" id="sFNombre" class="input" placeholder="ej: Intro, Estrofa A, etc.">
+                <label for="pTitulo">Título</label>
+                <input type="text" id="pTitulo" class="input" required>
               </div>
               <div>
-                <label for="sFCompases">Compases (ej: 1-8)</label>
-                <input type="text" id="sFCompases" class="input" placeholder="ej: 1-8">
+                <label for="pCompositor">Compositor</label>
+                <input type="text" id="pCompositor" class="input">
+              </div>
+              <div>
+                <label for="pTonalidad">Tonalidad</label>
+                <input type="text" id="pTonalidad" class="input">
+              </div>
+              <div>
+                <label for="pCompas">Compás</label>
+                <input type="text" id="pCompas" class="input">
+              </div>
+              <div>
+                <label for="pExtension">Extensión (nº de compases)</label>
+                <input type="number" id="pExtension" class="input">
+              </div>
+              <div>
+                <label for="pFechaInicio">Fecha de inicio</label>
+                <input type="date" id="pFechaInicio" class="input">
               </div>
             </div>
 
             <div class="tarjeta_cuerpo">
-              <button type="button" class="btn btn-primario" data-accion="agregar-fragmento">Agregar fragmento</button>
+              <label for="pEstructura">Estructura</label>
+              <textarea id="pEstructura" class="input"></textarea>
             </div>
 
-            <div id="listaFragmentos" class="lista-fragmentos"></div>
-          </section>
-        </div>
+            <div class="tarjeta_cuerpo">
+              <label for="pPuntosDificiles">Puntos difíciles</label>
+              <textarea id="pPuntosDificiles" class="input"></textarea>
+            </div>
 
-        <!-- VISTA 3: SESIONES DE PRÁCTICA -->
-        <div id="vistaSesiones" class="vista-contenido" style="display: none;">
-          <section class="tarjeta">
-            <h2>3. SESIONES DE PRÁCTICA</h2>
+            <div class="tarjeta_cuerpo">
+              <label for="pAcompanamiento">Acompañamiento</label>
+              <textarea id="pAcompanamiento" class="input"></textarea>
+            </div>
 
-            <!-- TEMPORIZADOR -->
-            <div class="temporizador-contenedor">
-              <div class="temporizador">
-                <div id="tiempoDisplay">0h 0m 0s</div>
-                <div class="temporizador-botones">
-                  <button type="button" class="btn btn-pequeno" data-accion="iniciar-temporizador">Iniciar</button>
-                  <button type="button" class="btn btn-pequeno" data-accion="pausar-temporizador">Pausar</button>
-                  <button type="button" class="btn btn-pequeno" data-accion="detener-temporizador">Detener</button>
-                </div>
+            <div class="tarjeta_cuerpo">
+              <button type="button" class="btn btn-primario" id="btnGuardarPieza">Guardar cambios</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- SECCIÓN 2: FRAGMENTOS -->
+        <section class="tarjeta">
+          <h2>2. FRAGMENTOS</h2>
+          
+          <div class="tarjeta_cuerpo rejilla">
+            <div>
+              <label for="sFNombre">Nombre del fragmento</label>
+              <input type="text" id="sFNombre" class="input" placeholder="ej: Intro, Estrofa A, etc.">
+            </div>
+            <div>
+              <label for="sFCompases">Compases (ej: 1-8)</label>
+              <input type="text" id="sFCompases" class="input" placeholder="ej: 1-8">
+            </div>
+          </div>
+
+          <div class="tarjeta_cuerpo">
+            <button type="button" class="btn btn-primario" data-accion="agregar-fragmento">Agregar fragmento</button>
+          </div>
+
+          <div id="listaFragmentos" class="lista-fragmentos"></div>
+        </section>
+
+        <!-- SECCIÓN 3: SESIONES DE PRÁCTICA -->
+        <section class="tarjeta">
+          <h2>3. SESIONES DE PRÁCTICA</h2>
+
+          <!-- TEMPORIZADOR -->
+          <div class="temporizador-contenedor">
+            <div class="temporizador">
+              <div id="tiempoDisplay">0h 0m 0s</div>
+              <div class="temporizador-botones">
+                <button type="button" class="btn btn-pequeno" data-accion="iniciar-temporizador">Iniciar</button>
+                <button type="button" class="btn btn-pequeno" data-accion="pausar-temporizador">Pausar</button>
+                <button type="button" class="btn btn-pequeno" data-accion="detener-temporizador">Detener</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORMULARIO SESIÓN -->
+          <form id="formSesion">
+            <div class="tarjeta_cuerpo rejilla">
+              <div>
+                <label for="sFecha">Fecha</label>
+                <input type="date" id="sFecha" class="input" required>
+              </div>
+              <div>
+                <label for="sFragmento">Fragmento</label>
+                <input type="text" id="sFragmento" class="input" required>
               </div>
             </div>
 
-            <!-- FORMULARIO SESIÓN -->
-            <form id="formSesion">
-              <div class="tarjeta_cuerpo rejilla">
-                <div>
-                  <label for="sFecha">Fecha</label>
-                  <input type="date" id="sFecha" class="input" required>
-                </div>
-                <div>
-                  <label for="sFragmento">Fragmento</label>
-                  <input type="text" id="sFragmento" class="input" required>
-                </div>
+            <div class="tarjeta_cuerpo rejilla">
+              <div>
+                <label for="sProgreso">Progreso</label>
+                <input type="text" id="sProgreso" class="input" placeholder="ej: Mejor, Igual, Peor">
               </div>
-
-              <div class="tarjeta_cuerpo rejilla">
-                <div>
-                  <label for="sProgreso">Progreso</label>
-                  <input type="text" id="sProgreso" class="input" placeholder="ej: Mejor, Igual, Peor">
-                </div>
-                <div>
-                  <label for="sEnfoque">Enfoque</label>
-                  <select id="sEnfoque" class="input">
-                    <option value="">Selecciona un enfoque</option>
-                    <option value="Técnica">Técnica</option>
-                    <option value="Musicalidad">Musicalidad</option>
-                    <option value="Velocidad">Velocidad</option>
-                    <option value="Memoria">Memoria</option>
-                    <option value="Interpretación">Interpretación</option>
-                    <option value="Otro">Otro</option>
-                  </select>
-                </div>
+              <div>
+                <label for="sEnfoque">Enfoque</label>
+                <select id="sEnfoque" class="input">
+                  <option value="">Selecciona un enfoque</option>
+                  <option value="Técnica">Técnica</option>
+                  <option value="Musicalidad">Musicalidad</option>
+                  <option value="Velocidad">Velocidad</option>
+                  <option value="Memoria">Memoria</option>
+                  <option value="Interpretación">Interpretación</option>
+                  <option value="Otro">Otro</option>
+                </select>
               </div>
+            </div>
 
-              <div id="otroEnfoqueDiv" class="tarjeta_cuerpo" style="display: none;">
-                <label for="sOtroEnfoque">Especifica el enfoque</label>
-                <input type="text" id="sOtroEnfoque" class="input">
+            <div id="otroEnfoqueDiv" class="tarjeta_cuerpo" style="display: none;">
+              <label for="sOtroEnfoque">Especifica el enfoque</label>
+              <input type="text" id="sOtroEnfoque" class="input">
+            </div>
+
+            <div class="tarjeta_cuerpo">
+              <label>Sentimientos durante la práctica</label>
+              <div class="checkbox-grupo">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="sentimientos" value="Frustración">
+                  Frustración
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="sentimientos" value="Satisfacción">
+                  Satisfacción
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="sentimientos" value="Cansancio">
+                  Cansancio
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="sentimientos" value="Motivación">
+                  Motivación
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="sentimientos" value="Aburrimiento">
+                  Aburrimiento
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="sentimientos" value="Alegría">
+                  Alegría
+                </label>
               </div>
+            </div>
 
-              <div class="tarjeta_cuerpo">
-                <label>Sentimientos durante la práctica</label>
-                <div class="checkbox-grupo">
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="sentimientos" value="Frustración">
-                    Frustración
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="sentimientos" value="Satisfacción">
-                    Satisfacción
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="sentimientos" value="Cansancio">
-                    Cansancio
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="sentimientos" value="Motivación">
-                    Motivación
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="sentimientos" value="Aburrimiento">
-                    Aburrimiento
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="sentimientos" value="Alegría">
-                    Alegría
-                  </label>
-                </div>
+            <div class="tarjeta_cuerpo rejilla">
+              <div>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="sGrabado">
+                  ¿Grabaste esta sesión?
+                </label>
               </div>
+            </div>
 
-              <div class="tarjeta_cuerpo rejilla">
-                <div>
-                  <label class="checkbox-label">
-                    <input type="checkbox" id="sGrabado">
-                    ¿Grabaste esta sesión?
-                  </label>
-                </div>
-              </div>
+            <div class="tarjeta_cuerpo">
+              <label for="sNotas">Notas</label>
+              <textarea id="sNotas" class="input" placeholder="Notas sobre esta sesión..."></textarea>
+            </div>
 
-              <div class="tarjeta_cuerpo">
-                <label for="sNotas">Notas</label>
-                <textarea id="sNotas" class="input" placeholder="Notas sobre esta sesión..."></textarea>
-              </div>
+            <div class="tarjeta_cuerpo">
+              <button type="button" class="btn btn-primario" data-accion="guardar-sesion">Guardar sesión</button>
+            </div>
+          </form>
 
-              <div class="tarjeta_cuerpo">
-                <button type="button" class="btn btn-primario" data-accion="guardar-sesion">Guardar sesión</button>
-              </div>
-            </form>
+          <!-- HISTORIAL DE SESIONES -->
+          <h3>Historial de sesiones</h3>
+          <div id="listaSesiones" class="lista-sesiones"></div>
+        </section>
 
-            <!-- HISTORIAL DE SESIONES -->
-            <h3>Historial de sesiones</h3>
-            <div id="listaSesiones" class="lista-sesiones"></div>
-          </section>
+        <!-- SECCIÓN 4: INFORME (CON PESTAÑA) -->
+        <div class="pestanas">
+          <button class="btn-vista activo" data-vista="informe">Informe</button>
         </div>
 
-        <!-- VISTA 4: INFORME -->
-        <div id="vistaInforme" class="vista-contenido" style="display: none;">
+        <div id="vistaInforme" class="vista-contenido">
           <section class="tarjeta">
             <h2>4. INFORME DE PRÁCTICA</h2>
 
