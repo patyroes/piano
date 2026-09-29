@@ -69,6 +69,9 @@ async function cargarPieza() {
 
     // Cargar fragmentos
     await cargarFragmentos(pieza.fragmentos || []);
+    
+    // Cargar fragmentos en el select
+    await cargarFragmentosEnSelect(pieza.fragmentos || []);
 
   } catch (error) {
     console.error('Error al cargar pieza:', error);
@@ -105,10 +108,35 @@ async function cargarFragmentos(fragmentos) {
 
   document.querySelectorAll('.btn-eliminar-fragmento').forEach(btn => {
     btn.addEventListener('click', async (e) => {
+      e.preventDefault();
       const index = parseInt(e.target.dataset.index);
       await eliminarFragmento(index);
     });
   });
+}
+
+async function cargarFragmentosEnSelect(fragmentos) {
+  const selectFragmento = document.getElementById('sFragmento');
+  
+  if (!selectFragmento) {
+    console.error('No se encontró elemento sFragmento');
+    return;
+  }
+
+  // Limpiar opciones (excepto la primera)
+  while (selectFragmento.options.length > 1) {
+    selectFragmento.remove(1);
+  }
+
+  // Agregar fragmentos
+  if (fragmentos && fragmentos.length > 0) {
+    fragmentos.forEach(frag => {
+      const option = document.createElement('option');
+      option.value = frag.nombre;
+      option.textContent = `${frag.nombre} (${frag.compases})`;
+      selectFragmento.appendChild(option);
+    });
+  }
 }
 
 async function agregarFragmento() {
@@ -134,6 +162,7 @@ async function agregarFragmento() {
     if (sFCompases) sFCompases.value = '';
 
     await cargarFragmentos(pieza.fragmentos);
+    await cargarFragmentosEnSelect(pieza.fragmentos);
   } catch (error) {
     console.error('Error al agregar fragmento:', error);
   }
@@ -147,6 +176,7 @@ async function eliminarFragmento(index) {
     pieza.fragmentos.splice(index, 1);
     await guardarPiezaDB(pieza);
     await cargarFragmentos(pieza.fragmentos);
+    await cargarFragmentosEnSelect(pieza.fragmentos);
   } catch (error) {
     console.error('Error al eliminar fragmento:', error);
   }
@@ -202,6 +232,7 @@ async function cargarSesiones() {
 
     document.querySelectorAll('.btn-eliminar-sesion').forEach(btn => {
       btn.addEventListener('click', async (e) => {
+        e.preventDefault();
         const index = parseInt(e.target.dataset.index);
         await eliminarSesion(sesionesFiltradasOrdenadas[index].id);
       });
@@ -320,6 +351,12 @@ async function guardarSesion() {
     if (sFecha) sFecha.value = new Date().toISOString().split('T')[0];
     if (sFragmento) sFragmento.value = '';
     document.getElementById('sProgreso').value = '';
+    
+    // Desactivar botones de progreso
+    document.querySelectorAll('.btn-progreso').forEach(btn => {
+      btn.classList.remove('activo');
+    });
+    
     document.getElementById('sEnfoque').value = '';
     document.getElementById('sOtroEnfoque').value = '';
     document.getElementById('sGrabado').checked = false;
@@ -397,7 +434,10 @@ function configurarEventos() {
   // Botón agregar fragmento
   const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
   if (btnAgregarFragmento) {
-    btnAgregarFragmento.addEventListener('click', agregarFragmento);
+    btnAgregarFragmento.addEventListener('click', (e) => {
+      e.preventDefault();
+      agregarFragmento();
+    });
   }
 
   // Botones temporizador
@@ -410,12 +450,19 @@ function configurarEventos() {
   if (btnIniciar) btnIniciar.addEventListener('click', iniciarTemporizador);
   if (btnPausar) btnPausar.addEventListener('click', pausarTemporizador);
   if (btnDetener) btnDetener.addEventListener('click', detenerTemporizador);
-  if (btnGuardarSesion) btnGuardarSesion.addEventListener('click', guardarSesion);
-  if (btnDescargarPDF) btnDescargarPDF.addEventListener('click', () => {
-    const pTitulo = document.getElementById('pTitulo');
-    const nombrePieza = pTitulo ? pTitulo.value : 'Pieza';
-    descargarPDFInforme(nombrePieza);
-  });
+  if (btnGuardarSesion) {
+    btnGuardarSesion.addEventListener('click', (e) => {
+      e.preventDefault();
+      guardarSesion();
+    });
+  }
+  if (btnDescargarPDF) {
+    btnDescargarPDF.addEventListener('click', () => {
+      const pTitulo = document.getElementById('pTitulo');
+      const nombrePieza = pTitulo ? pTitulo.value : 'Pieza';
+      descargarPDFInforme(nombrePieza);
+    });
+  }
 
   // Botón vista informe
   const btnVistaInforme = document.querySelector('[data-vista="informe"]');
@@ -443,4 +490,22 @@ function configurarEventos() {
       otroEnfoqueDiv.style.display = selectEnfoque.value === 'Otro' ? 'block' : 'none';
     });
   }
+
+  // Botones de progreso
+  const botonesProgreso = document.querySelectorAll('.btn-progreso');
+  const inputProgreso = document.getElementById('sProgreso');
+  
+  botonesProgreso.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Desactivar todos
+      botonesProgreso.forEach(b => b.classList.remove('activo'));
+      // Activar el clickeado
+      btn.classList.add('activo');
+      // Guardar valor
+      if (inputProgreso) {
+        inputProgreso.value = btn.dataset.progreso;
+      }
+    });
+  });
 }

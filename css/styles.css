@@ -335,6 +335,52 @@ textarea.input {
   flex-wrap: wrap;
 }
 
+/* BOTONES DE PROGRESO */
+.botones-progreso {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.btn-progreso {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  background-color: #f9f8f7;
+  color: #888;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.btn-progreso:hover {
+  border-color: #8ab4d5;
+  color: #8ab4d5;
+}
+
+.btn-progreso.activo {
+  background-color: #8ab4d5;
+  color: white;
+  border-color: #8ab4d5;
+}
+
+.btn-progreso[data-progreso="Peor"].activo {
+  background-color: #c89999;
+  border-color: #c89999;
+}
+
+.btn-progreso[data-progreso="Igual"].activo {
+  background-color: #d4b896;
+  border-color: #d4b896;
+}
+
+.btn-progreso[data-progreso="Mejor"].activo {
+  background-color: #8ab4d5;
+  border-color: #8ab4d5;
+}
+
 .checkbox-grupo {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

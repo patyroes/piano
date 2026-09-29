@@ -163,15 +163,23 @@
               </div>
               <div>
                 <label for="sFragmento">Fragmento</label>
-                <input type="text" id="sFragmento" class="input" required>
+                <select id="sFragmento" class="input" required>
+                  <option value="">Selecciona un fragmento</option>
+                </select>
               </div>
             </div>
 
-            <div class="tarjeta_cuerpo rejilla">
-              <div>
-                <label for="sProgreso">Progreso</label>
-                <input type="text" id="sProgreso" class="input" placeholder="ej: Mejor, Igual, Peor">
+            <div class="tarjeta_cuerpo">
+              <label>Progreso</label>
+              <div class="botones-progreso">
+                <button type="button" class="btn-progreso" data-progreso="Peor" title="Peor">●</button>
+                <button type="button" class="btn-progreso" data-progreso="Igual" title="Igual">●</button>
+                <button type="button" class="btn-progreso" data-progreso="Mejor" title="Mejor">●</button>
               </div>
+              <input type="hidden" id="sProgreso" value="">
+            </div>
+
+            <div class="tarjeta_cuerpo rejilla">
               <div>
                 <label for="sEnfoque">Enfoque</label>
                 <select id="sEnfoque" class="input">
