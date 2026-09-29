@@ -15,8 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await cargarPieza();
   await cargarSesiones();
-  await cargarDatosInforme(); // Cargar informe
+  await cargarDatosInforme();
   configurarEventos();
+  verificarAnalisisCompleto();
 });
 
 async function cargarPieza() {
@@ -50,6 +51,23 @@ async function cargarPieza() {
   }
 }
 
+function verificarAnalisisCompleto() {
+  const titulo = document.getElementById('pTitulo').value.trim();
+  const botonesVista = document.querySelectorAll('.btn-vista');
+
+  botonesVista.forEach(btn => {
+    if (btn.dataset.vista === 'analisis') {
+      btn.disabled = false;
+    } else {
+      // Bloquear si no hay título
+      btn.disabled = !titulo;
+    }
+  });
+
+  // Escuchar cambios en el título
+  document.getElementById('pTitulo').addEventListener('input', verificarAnalisisCompleto);
+}
+
 async function cargarFragmentos(fragmentos) {
   const lista = document.getElementById('listaFragmentos');
   lista.innerHTML = '';
@@ -72,7 +90,6 @@ async function cargarFragmentos(fragmentos) {
     lista.appendChild(div);
   });
 
-  // Event listeners para eliminar fragmentos
   document.querySelectorAll('.btn-eliminar-fragmento').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const index = parseInt(e.target.dataset.index);
@@ -161,7 +178,6 @@ async function cargarSesiones() {
       lista.appendChild(div);
     });
 
-    // Event listeners para eliminar sesiones
     document.querySelectorAll('.btn-eliminar-sesion').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const index = parseInt(e.target.dataset.index);
@@ -181,7 +197,6 @@ async function eliminarSesion(sesionId) {
     await eliminarSesionDB(sesionId);
     await cargarSesiones();
     
-    // Actualizar tiempo total
     const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
     document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
   } catch (error) {
@@ -223,12 +238,10 @@ async function guardarSesion() {
 
     await guardarSesionDB(sesion);
 
-    // Reiniciar temporizador
     detenerTemporizador();
     tiempoTranscurrido = 0;
     document.getElementById('tiempoDisplay').textContent = '0h 0m 0s';
 
-    // Limpiar formulario
     document.getElementById('sFecha').value = new Date().toISOString().split('T')[0];
     document.getElementById('sFragmento').value = '';
     document.getElementById('sProgreso').value = '';
@@ -238,11 +251,9 @@ async function guardarSesion() {
     document.getElementById('sNotas').value = '';
     document.querySelectorAll('input[name="sentimientos"]').forEach(cb => cb.checked = false);
 
-    // Actualizar listas
     await cargarSesiones();
-    await cargarDatosInforme(); // Actualizar informe
+    await cargarDatosInforme();
 
-    // Actualizar tiempo total
     const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
     document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
 
@@ -293,16 +304,13 @@ async function calcularTiempoTotal(pieceId) {
 }
 
 function cambiarVista(vista) {
-  // Ocultar todas las vistas
   document.getElementById('vistaAnalisis').style.display = 'none';
   document.getElementById('vistaFragmentos').style.display = 'none';
   document.getElementById('vistaSesiones').style.display = 'none';
   document.getElementById('vistaInforme').style.display = 'none';
 
-  // Desactivar todos los botones
   document.querySelectorAll('.btn-vista').forEach(btn => btn.classList.remove('activo'));
 
-  // Mostrar vista seleccionada
   if (vista === 'analisis') {
     document.getElementById('vistaAnalisis').style.display = 'block';
     document.querySelector('[data-vista="analisis"]').classList.add('activo');
@@ -319,21 +327,20 @@ function cambiarVista(vista) {
 }
 
 function configurarEventos() {
-  // Botones de vista
   document.querySelectorAll('.btn-vista').forEach(btn => {
     btn.addEventListener('click', () => {
-      const vista = btn.dataset.vista;
-      cambiarVista(vista);
+      if (!btn.disabled) {
+        const vista = btn.dataset.vista;
+        cambiarVista(vista);
+      }
     });
   });
 
-  // Botón agregar fragmento
   const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
   if (btnAgregarFragmento) {
     btnAgregarFragmento.addEventListener('click', agregarFragmento);
   }
 
-  // Botones temporizador
   const btnIniciar = document.querySelector('[data-accion="iniciar-temporizador"]');
   const btnPausar = document.querySelector('[data-accion="pausar-temporizador"]');
   const btnDetener = document.querySelector('[data-accion="detener-temporizador"]');
@@ -349,13 +356,11 @@ function configurarEventos() {
     descargarPDFInforme(nombrePieza);
   });
 
-  // Fecha automática
   const inputFecha = document.getElementById('sFecha');
   if (inputFecha && !inputFecha.value) {
     inputFecha.value = new Date().toISOString().split('T')[0];
   }
 
-  // Cambiar campo de enfoque
   const selectEnfoque = document.getElementById('sEnfoque');
   const otroEnfoqueDiv = document.getElementById('otroEnfoqueDiv');
   if (selectEnfoque && otroEnfoqueDiv) {
