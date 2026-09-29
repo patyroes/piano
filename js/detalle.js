@@ -13,37 +13,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  await cargarPieza();
-  await cargarSesiones();
-  await cargarDatosInforme();
-  configurarEventos();
+  // Esperar un poco para asegurar que el DOM está listo
+  setTimeout(async () => {
+    await cargarPieza();
+    await cargarSesiones();
+    await cargarDatosInforme();
+    configurarEventos();
+  }, 100);
 });
 
 async function cargarPieza() {
   try {
     const pieza = await obtenerPiezaDB(idPiezaActual);
+    
     if (!pieza) {
-      console.error('Pieza no encontrada');
+      console.error('Pieza no encontrada:', idPiezaActual);
       return;
     }
 
-    // Llenar formulario
-    document.getElementById('pTitulo').value = pieza.titulo || '';
-    document.getElementById('pCompositor').value = pieza.compositor || '';
-    document.getElementById('pTonalidad').value = pieza.tonalidad || '';
-    document.getElementById('pCompas').value = pieza.compas || '';
-    document.getElementById('pExtension').value = pieza.extension || '';
-    document.getElementById('pFechaInicio').value = pieza.fechaInicio || '';
-    document.getElementById('pEstructura').value = pieza.estructura || '';
-    document.getElementById('pPuntosDificiles').value = pieza.puntosDificiles || '';
-    document.getElementById('pAcompanamiento').value = pieza.acompanamiento || '';
+    console.log('Pieza cargada:', pieza);
+
+    // Llenar formulario con los datos de la pieza
+    const pTitulo = document.getElementById('pTitulo');
+    const pCompositor = document.getElementById('pCompositor');
+    const pTonalidad = document.getElementById('pTonalidad');
+    const pCompas = document.getElementById('pCompas');
+    const pExtension = document.getElementById('pExtension');
+    const pFechaInicio = document.getElementById('pFechaInicio');
+    const pEstructura = document.getElementById('pEstructura');
+    const pPuntosDificiles = document.getElementById('pPuntosDificiles');
+    const pAcompanamiento = document.getElementById('pAcompanamiento');
+
+    if (pTitulo) pTitulo.value = pieza.titulo || '';
+    if (pCompositor) pCompositor.value = pieza.compositor || '';
+    if (pTonalidad) pTonalidad.value = pieza.tonalidad || '';
+    if (pCompas) pCompas.value = pieza.compas || '';
+    if (pExtension) pExtension.value = pieza.extension || '';
+    if (pFechaInicio) pFechaInicio.value = pieza.fechaInicio || '';
+    if (pEstructura) pEstructura.value = pieza.estructura || '';
+    if (pPuntosDificiles) pPuntosDificiles.value = pieza.puntosDificiles || '';
+    if (pAcompanamiento) pAcompanamiento.value = pieza.acompanamiento || '';
 
     // Actualizar título de la página
-    document.getElementById('tituloPieza').textContent = pieza.titulo;
+    const tituloPieza = document.getElementById('tituloPieza');
+    if (tituloPieza) {
+      tituloPieza.textContent = pieza.titulo || 'Sin título';
+    }
 
     // Mostrar tiempo total
     const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
-    document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
+    const tiempoTotalPieza = document.getElementById('tiempoTotalPieza');
+    if (tiempoTotalPieza) {
+      tiempoTotalPieza.textContent = formatearTiempo(tiempoTotal);
+    }
 
     // Cargar fragmentos
     await cargarFragmentos(pieza.fragmentos || []);
@@ -55,6 +77,12 @@ async function cargarPieza() {
 
 async function cargarFragmentos(fragmentos) {
   const lista = document.getElementById('listaFragmentos');
+  
+  if (!lista) {
+    console.error('No se encontró elemento listaFragmentos');
+    return;
+  }
+
   lista.innerHTML = '';
 
   if (fragmentos.length === 0) {
@@ -84,8 +112,11 @@ async function cargarFragmentos(fragmentos) {
 }
 
 async function agregarFragmento() {
-  const nombre = document.getElementById('sFNombre').value.trim();
-  const compases = document.getElementById('sFCompases').value.trim();
+  const sFNombre = document.getElementById('sFNombre');
+  const sFCompases = document.getElementById('sFCompases');
+  
+  const nombre = sFNombre ? sFNombre.value.trim() : '';
+  const compases = sFCompases ? sFCompases.value.trim() : '';
 
   if (!nombre || !compases) {
     alert('Por favor rellena nombre y compases del fragmento');
@@ -99,8 +130,8 @@ async function agregarFragmento() {
     pieza.fragmentos.push({ nombre, compases });
     await guardarPiezaDB(pieza);
 
-    document.getElementById('sFNombre').value = '';
-    document.getElementById('sFCompases').value = '';
+    if (sFNombre) sFNombre.value = '';
+    if (sFCompases) sFCompases.value = '';
 
     await cargarFragmentos(pieza.fragmentos);
   } catch (error) {
@@ -129,6 +160,12 @@ async function cargarSesiones() {
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
     const lista = document.getElementById('listaSesiones');
+    
+    if (!lista) {
+      console.error('No se encontró elemento listaSesiones');
+      return;
+    }
+
     lista.innerHTML = '';
 
     if (sesionesFiltradasOrdenadas.length === 0) {
@@ -183,14 +220,18 @@ async function eliminarSesion(sesionId) {
     await cargarSesiones();
     
     const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
-    document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
+    const tiempoTotalPieza = document.getElementById('tiempoTotalPieza');
+    if (tiempoTotalPieza) {
+      tiempoTotalPieza.textContent = formatearTiempo(tiempoTotal);
+    }
   } catch (error) {
     console.error('Error al eliminar sesión:', error);
   }
 }
 
 async function guardarPieza() {
-  const titulo = document.getElementById('pTitulo').value.trim();
+  const pTitulo = document.getElementById('pTitulo');
+  const titulo = pTitulo ? pTitulo.value.trim() : '';
   
   if (!titulo) {
     alert('Por favor ingresa un título');
@@ -200,20 +241,28 @@ async function guardarPieza() {
   try {
     const pieza = await obtenerPiezaDB(idPiezaActual);
     
+    if (!pieza) {
+      alert('Pieza no encontrada');
+      return;
+    }
+
     pieza.titulo = titulo;
-    pieza.compositor = document.getElementById('pCompositor').value;
-    pieza.tonalidad = document.getElementById('pTonalidad').value;
-    pieza.compas = document.getElementById('pCompas').value;
-    pieza.extension = document.getElementById('pExtension').value;
-    pieza.fechaInicio = document.getElementById('pFechaInicio').value;
-    pieza.estructura = document.getElementById('pEstructura').value;
-    pieza.puntosDificiles = document.getElementById('pPuntosDificiles').value;
-    pieza.acompanamiento = document.getElementById('pAcompanamiento').value;
+    pieza.compositor = document.getElementById('pCompositor')?.value || '';
+    pieza.tonalidad = document.getElementById('pTonalidad')?.value || '';
+    pieza.compas = document.getElementById('pCompas')?.value || '';
+    pieza.extension = document.getElementById('pExtension')?.value || '';
+    pieza.fechaInicio = document.getElementById('pFechaInicio')?.value || '';
+    pieza.estructura = document.getElementById('pEstructura')?.value || '';
+    pieza.puntosDificiles = document.getElementById('pPuntosDificiles')?.value || '';
+    pieza.acompanamiento = document.getElementById('pAcompanamiento')?.value || '';
 
     await guardarPiezaDB(pieza);
     
     // Actualizar título de la página
-    document.getElementById('tituloPieza').textContent = pieza.titulo;
+    const tituloPieza = document.getElementById('tituloPieza');
+    if (tituloPieza) {
+      tituloPieza.textContent = pieza.titulo;
+    }
     
     alert('Cambios guardados correctamente');
 
@@ -224,15 +273,19 @@ async function guardarPieza() {
 }
 
 async function guardarSesion() {
-  const fecha = document.getElementById('sFecha').value;
-  const fragmento = document.getElementById('sFragmento').value;
-  const progreso = document.getElementById('sProgreso').value;
-  const enfoque = document.getElementById('sEnfoque').value;
-  const otroEnfoque = document.getElementById('sOtroEnfoque').value;
+  const sFecha = document.getElementById('sFecha');
+  const sFragmento = document.getElementById('sFragmento');
+  
+  const fecha = sFecha ? sFecha.value : '';
+  const fragmento = sFragmento ? sFragmento.value : '';
+  
+  const progreso = document.getElementById('sProgreso')?.value || '';
+  const enfoque = document.getElementById('sEnfoque')?.value || '';
+  const otroEnfoque = document.getElementById('sOtroEnfoque')?.value || '';
   const sentimientos = Array.from(document.querySelectorAll('input[name="sentimientos"]:checked'))
     .map(cb => cb.value);
-  const grabado = document.getElementById('sGrabado').checked;
-  const notas = document.getElementById('sNotas').value;
+  const grabado = document.getElementById('sGrabado')?.checked || false;
+  const notas = document.getElementById('sNotas')?.value || '';
 
   if (!fecha || !fragmento) {
     alert('Por favor rellena fecha y fragmento');
@@ -259,10 +312,13 @@ async function guardarSesion() {
 
     detenerTemporizador();
     tiempoTranscurrido = 0;
-    document.getElementById('tiempoDisplay').textContent = '0h 0m 0s';
+    
+    const tiempoDisplay = document.getElementById('tiempoDisplay');
+    if (tiempoDisplay) tiempoDisplay.textContent = '0h 0m 0s';
 
-    document.getElementById('sFecha').value = new Date().toISOString().split('T')[0];
-    document.getElementById('sFragmento').value = '';
+    // Limpiar formulario
+    if (sFecha) sFecha.value = new Date().toISOString().split('T')[0];
+    if (sFragmento) sFragmento.value = '';
     document.getElementById('sProgreso').value = '';
     document.getElementById('sEnfoque').value = '';
     document.getElementById('sOtroEnfoque').value = '';
@@ -274,7 +330,10 @@ async function guardarSesion() {
     await cargarDatosInforme();
 
     const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
-    document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
+    const tiempoTotalPieza = document.getElementById('tiempoTotalPieza');
+    if (tiempoTotalPieza) {
+      tiempoTotalPieza.textContent = formatearTiempo(tiempoTotal);
+    }
 
     alert('Sesión guardada correctamente');
 
@@ -289,7 +348,10 @@ function iniciarTemporizador() {
 
   timerInterval = setInterval(() => {
     tiempoTranscurrido++;
-    document.getElementById('tiempoDisplay').textContent = formatearTiempo(tiempoTranscurrido);
+    const tiempoDisplay = document.getElementById('tiempoDisplay');
+    if (tiempoDisplay) {
+      tiempoDisplay.textContent = formatearTiempo(tiempoTranscurrido);
+    }
   }, 1000);
 }
 
@@ -303,7 +365,10 @@ function pausarTemporizador() {
 function detenerTemporizador() {
   pausarTemporizador();
   tiempoTranscurrido = 0;
-  document.getElementById('tiempoDisplay').textContent = '0h 0m 0s';
+  const tiempoDisplay = document.getElementById('tiempoDisplay');
+  if (tiempoDisplay) {
+    tiempoDisplay.textContent = '0h 0m 0s';
+  }
 }
 
 function formatearTiempo(segundos) {
@@ -326,7 +391,7 @@ function configurarEventos() {
   // Botón guardar pieza
   const btnGuardarPieza = document.getElementById('btnGuardarPieza');
   if (btnGuardarPieza) {
-    btnGuardarPieza.addEventListener('click', guardarPieza);
+    btnGuardarPieza.onclick = guardarPieza;
   }
 
   // Botón agregar fragmento
@@ -347,7 +412,8 @@ function configurarEventos() {
   if (btnDetener) btnDetener.addEventListener('click', detenerTemporizador);
   if (btnGuardarSesion) btnGuardarSesion.addEventListener('click', guardarSesion);
   if (btnDescargarPDF) btnDescargarPDF.addEventListener('click', () => {
-    const nombrePieza = document.getElementById('pTitulo').value || 'Pieza';
+    const pTitulo = document.getElementById('pTitulo');
+    const nombrePieza = pTitulo ? pTitulo.value : 'Pieza';
     descargarPDFInforme(nombrePieza);
   });
 
@@ -355,7 +421,10 @@ function configurarEventos() {
   const btnVistaInforme = document.querySelector('[data-vista="informe"]');
   if (btnVistaInforme) {
     btnVistaInforme.addEventListener('click', () => {
-      document.getElementById('vistaInforme').style.display = 'block';
+      const vistaInforme = document.getElementById('vistaInforme');
+      if (vistaInforme) {
+        vistaInforme.style.display = 'block';
+      }
       btnVistaInforme.classList.add('activo');
     });
   }
