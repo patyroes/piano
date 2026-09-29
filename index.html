@@ -170,11 +170,20 @@
             </div>
 
             <div class="tarjeta_cuerpo">
-              <label>Progreso</label>
+              <label>Estado</label>
               <div class="botones-progreso">
-                <button type="button" class="btn-progreso" data-progreso="Peor" title="Peor">●</button>
-                <button type="button" class="btn-progreso" data-progreso="Igual" title="Igual">●</button>
-                <button type="button" class="btn-progreso" data-progreso="Mejor" title="Mejor">●</button>
+                <div class="boton-progreso-grupo">
+                  <button type="button" class="btn-progreso" data-progreso="En proceso" title="En proceso">●</button>
+                  <span class="titulo-progreso">En proceso</span>
+                </div>
+                <div class="boton-progreso-grupo">
+                  <button type="button" class="btn-progreso" data-progreso="Sale mejor" title="Sale mejor">●</button>
+                  <span class="titulo-progreso">Sale mejor</span>
+                </div>
+                <div class="boton-progreso-grupo">
+                  <button type="button" class="btn-progreso" data-progreso="Dominado" title="Dominado">●</button>
+                  <span class="titulo-progreso">Dominado</span>
+                </div>
               </div>
               <input type="hidden" id="sProgreso" value="">
             </div>

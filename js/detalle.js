@@ -1,376 +1,279 @@
-// detalle.js - Lógica de la ficha de pieza individual
+// ===== DETALLE.JS =====
+// Lógica para la ficha de detalle de cada pieza
 
-let idPiezaActual = null;
-let timerInterval = null;
-let tiempoTranscurrido = 0;
-
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async function() {
   const params = new URLSearchParams(window.location.search);
-  idPiezaActual = params.get('id');
+  const piezaId = params.get('id');
+  const vista = params.get('vista');
 
-  if (!idPiezaActual) {
-    console.error('No se encontró ID de pieza');
+  // Si es nueva pieza, inicializar
+  if (!piezaId) {
+    inicializarNuevaPieza();
     return;
   }
 
-  // Esperar un poco para asegurar que el DOM está listo
-  setTimeout(async () => {
-    await cargarPieza();
-    await cargarSesiones();
-    await cargarDatosInforme();
-    configurarEventos();
-  }, 100);
+  // Cargar pieza existente
+  await cargarPieza(piezaId);
+
+  // Si vista es 'informe', mostrar informe
+  if (vista === 'informe') {
+    mostrarVista('informe');
+  }
 });
 
-async function cargarPieza() {
+// ===== INICIALIZAR NUEVA PIEZA =====
+function inicializarNuevaPieza() {
+  const formPieza = document.getElementById('formPieza');
+  if (formPieza) {
+    formPieza.reset();
+  }
+  
+  const tiempoTotal = document.getElementById('tiempoTotal');
+  if (tiempoTotal) {
+    tiempoTotal.textContent = 'Tiempo total practicado: 0h 0m';
+  }
+}
+
+// ===== CARGAR PIEZA EXISTENTE =====
+async function cargarPieza(piezaId) {
   try {
-    const pieza = await obtenerPiezaDB(idPiezaActual);
-    
+    const db = await abrirDB();
+    const pieza = await obtenerPieza(db, piezaId);
+
     if (!pieza) {
-      console.error('Pieza no encontrada:', idPiezaActual);
+      alert('Pieza no encontrada');
+      window.location.href = 'index.html';
       return;
     }
 
-    console.log('Pieza cargada:', pieza);
+    // Llenar formulario con datos de la pieza
+    document.getElementById('sTitulo').value = pieza.titulo || '';
+    document.getElementById('sCompositor').value = pieza.compositor || '';
+    document.getElementById('sTonalidad').value = pieza.tonalidad || '';
+    document.getElementById('sCompas').value = pieza.compas || '';
+    document.getElementById('sExtension').value = pieza.extension || '';
+    document.getElementById('sFecha').value = pieza.fecha || '';
+    document.getElementById('sEstructura').value = pieza.estructura || '';
+    document.getElementById('sPuntosDificiles').value = pieza.puntosDificiles || '';
+    document.getElementById('sAcompanamiento').value = pieza.acompanamiento || '';
 
-    // Llenar formulario con los datos de la pieza
-    const pTitulo = document.getElementById('pTitulo');
-    const pCompositor = document.getElementById('pCompositor');
-    const pTonalidad = document.getElementById('pTonalidad');
-    const pCompas = document.getElementById('pCompas');
-    const pExtension = document.getElementById('pExtension');
-    const pFechaInicio = document.getElementById('pFechaInicio');
-    const pEstructura = document.getElementById('pEstructura');
-    const pPuntosDificiles = document.getElementById('pPuntosDificiles');
-    const pAcompanamiento = document.getElementById('pAcompanamiento');
-
-    if (pTitulo) pTitulo.value = pieza.titulo || '';
-    if (pCompositor) pCompositor.value = pieza.compositor || '';
-    if (pTonalidad) pTonalidad.value = pieza.tonalidad || '';
-    if (pCompas) pCompas.value = pieza.compas || '';
-    if (pExtension) pExtension.value = pieza.extension || '';
-    if (pFechaInicio) pFechaInicio.value = pieza.fechaInicio || '';
-    if (pEstructura) pEstructura.value = pieza.estructura || '';
-    if (pPuntosDificiles) pPuntosDificiles.value = pieza.puntosDificiles || '';
-    if (pAcompanamiento) pAcompanamiento.value = pieza.acompanamiento || '';
-
-    // Actualizar título de la página
-    const tituloPieza = document.getElementById('tituloPieza');
-    if (tituloPieza) {
-      tituloPieza.textContent = pieza.titulo || 'Sin título';
-    }
+    // Cargar fragmentos en el desplegable
+    cargarFragmentosEnSelect(db, piezaId);
 
     // Mostrar tiempo total
-    const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
-    const tiempoTotalPieza = document.getElementById('tiempoTotalPieza');
-    if (tiempoTotalPieza) {
-      tiempoTotalPieza.textContent = formatearTiempo(tiempoTotal);
-    }
+    actualizarTiempoTotal(db, piezaId);
 
-    // Cargar fragmentos
-    await cargarFragmentos(pieza.fragmentos || []);
-    
-    // Cargar fragmentos en el select
-    await cargarFragmentosEnSelect(pieza.fragmentos || []);
+    // Guardar piezaId en variable global para usar en otras funciones
+    window.piezaIdActual = piezaId;
+
+    // Cargar historial de sesiones
+    mostrarHistorial(piezaId);
 
   } catch (error) {
     console.error('Error al cargar pieza:', error);
+    alert('Error al cargar la pieza');
   }
 }
 
-async function cargarFragmentos(fragmentos) {
-  const lista = document.getElementById('listaFragmentos');
-  
-  if (!lista) {
-    console.error('No se encontró elemento listaFragmentos');
-    return;
-  }
+// ===== CARGAR FRAGMENTOS EN SELECT =====
+async function cargarFragmentosEnSelect(db, piezaId) {
+  try {
+    const fragmentos = await obtenerFragmentos(db, piezaId);
+    const select = document.getElementById('sFragmento');
+    
+    if (!select) return;
 
-  lista.innerHTML = '';
+    // Limpiar opciones previas (excepto la primera)
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
 
-  if (fragmentos.length === 0) {
-    lista.innerHTML = '<p style="color: #999;">Sin fragmentos aún.</p>';
-    return;
-  }
-
-  fragmentos.forEach((frag, index) => {
-    const div = document.createElement('div');
-    div.className = 'fragmento-item';
-    div.innerHTML = `
-      <div class="fragmento-header">
-        <strong>${frag.nombre}</strong>
-        <span class="fragmento-compases">${frag.compases || '?'}</span>
-      </div>
-      <button type="button" class="btn-eliminar-fragmento" data-index="${index}">Eliminar</button>
-    `;
-    lista.appendChild(div);
-  });
-
-  document.querySelectorAll('.btn-eliminar-fragmento').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const index = parseInt(e.target.dataset.index);
-      await eliminarFragmento(index);
-    });
-  });
-}
-
-async function cargarFragmentosEnSelect(fragmentos) {
-  const selectFragmento = document.getElementById('sFragmento');
-  
-  if (!selectFragmento) {
-    console.error('No se encontró elemento sFragmento');
-    return;
-  }
-
-  // Limpiar opciones (excepto la primera)
-  while (selectFragmento.options.length > 1) {
-    selectFragmento.remove(1);
-  }
-
-  // Agregar fragmentos
-  if (fragmentos && fragmentos.length > 0) {
-    fragmentos.forEach(frag => {
+    // Agregar fragmentos
+    fragmentos.forEach(fragmento => {
       const option = document.createElement('option');
-      option.value = frag.nombre;
-      option.textContent = `${frag.nombre} (${frag.compases})`;
-      selectFragmento.appendChild(option);
+      option.value = fragmento.id;
+      option.textContent = `${fragmento.nombre} (cc. ${fragmento.compases})`;
+      select.appendChild(option);
     });
+
+  } catch (error) {
+    console.error('Error al cargar fragmentos:', error);
   }
 }
 
+// ===== AGREGAR FRAGMENTO =====
 async function agregarFragmento() {
-  const sFNombre = document.getElementById('sFNombre');
-  const sFCompases = document.getElementById('sFCompases');
-  
-  const nombre = sFNombre ? sFNombre.value.trim() : '';
-  const compases = sFCompases ? sFCompases.value.trim() : '';
+  const nombreFragmento = document.getElementById('sNombreFragmento').value.trim();
+  const compasesFragmento = document.getElementById('sCompasesFragmento').value.trim();
 
-  if (!nombre || !compases) {
-    alert('Por favor rellena nombre y compases del fragmento');
+  if (!nombreFragmento || !compasesFragmento) {
+    alert('Por favor completa nombre y compases del fragmento');
     return;
   }
 
   try {
-    const pieza = await obtenerPiezaDB(idPiezaActual);
-    if (!pieza.fragmentos) pieza.fragmentos = [];
+    const db = await abrirDB();
+    const piezaId = window.piezaIdActual;
 
-    pieza.fragmentos.push({ nombre, compases });
-    await guardarPiezaDB(pieza);
-
-    if (sFNombre) sFNombre.value = '';
-    if (sFCompases) sFCompases.value = '';
-
-    await cargarFragmentos(pieza.fragmentos);
-    await cargarFragmentosEnSelect(pieza.fragmentos);
-  } catch (error) {
-    console.error('Error al agregar fragmento:', error);
-  }
-}
-
-async function eliminarFragmento(index) {
-  if (!confirm('¿Eliminar este fragmento?')) return;
-
-  try {
-    const pieza = await obtenerPiezaDB(idPiezaActual);
-    pieza.fragmentos.splice(index, 1);
-    await guardarPiezaDB(pieza);
-    await cargarFragmentos(pieza.fragmentos);
-    await cargarFragmentosEnSelect(pieza.fragmentos);
-  } catch (error) {
-    console.error('Error al eliminar fragmento:', error);
-  }
-}
-
-async function cargarSesiones() {
-  try {
-    const sesiones = await obtenerSesionesDB();
-    const sesionesFiltradasOrdenadas = sesiones
-      .filter(s => s.pieceId === idPiezaActual)
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-    const lista = document.getElementById('listaSesiones');
-    
-    if (!lista) {
-      console.error('No se encontró elemento listaSesiones');
-      return;
-    }
-
-    lista.innerHTML = '';
-
-    if (sesionesFiltradasOrdenadas.length === 0) {
-      lista.innerHTML = '<p style="color: #999;">Sin sesiones aún.</p>';
-      return;
-    }
-
-    sesionesFiltradasOrdenadas.forEach((sesion, index) => {
-      const fecha = new Date(sesion.fecha).toLocaleDateString('es-ES');
-      const tiempo = formatearTiempo(sesion.tiempo);
-      const sentimientos = (sesion.sentimientos && sesion.sentimientos.length > 0)
-        ? sesion.sentimientos.join(', ')
-        : 'Sin sentimientos';
-
-      const div = document.createElement('div');
-      div.className = 'sesion-item';
-      div.innerHTML = `
-        <div class="sesion-header">
-          <strong>${fecha}</strong>
-          <span class="sesion-tiempo">${tiempo}</span>
-        </div>
-        <div class="sesion-detalle">
-          <p><strong>Fragmento:</strong> ${sesion.fragmento}</p>
-          <p><strong>Progreso:</strong> ${sesion.progreso || '-'}</p>
-          <p><strong>Enfoque:</strong> ${sesion.enfoque || '-'}</p>
-          <p><strong>Sentimientos:</strong> ${sentimientos}</p>
-          <p><strong>Grabación:</strong> ${sesion.grabado ? 'Sí' : 'No'}</p>
-          ${sesion.notas ? `<p><strong>Notas:</strong> ${sesion.notas}</p>` : ''}
-        </div>
-        <button type="button" class="btn-eliminar-sesion" data-index="${index}">Eliminar sesión</button>
-      `;
-      lista.appendChild(div);
-    });
-
-    document.querySelectorAll('.btn-eliminar-sesion').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const index = parseInt(e.target.dataset.index);
-        await eliminarSesion(sesionesFiltradasOrdenadas[index].id);
-      });
-    });
-
-  } catch (error) {
-    console.error('Error al cargar sesiones:', error);
-  }
-}
-
-async function eliminarSesion(sesionId) {
-  if (!confirm('¿Eliminar esta sesión?')) return;
-
-  try {
-    await eliminarSesionDB(sesionId);
-    await cargarSesiones();
-    
-    const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
-    const tiempoTotalPieza = document.getElementById('tiempoTotalPieza');
-    if (tiempoTotalPieza) {
-      tiempoTotalPieza.textContent = formatearTiempo(tiempoTotal);
-    }
-  } catch (error) {
-    console.error('Error al eliminar sesión:', error);
-  }
-}
-
-async function guardarPieza() {
-  const pTitulo = document.getElementById('pTitulo');
-  const titulo = pTitulo ? pTitulo.value.trim() : '';
-  
-  if (!titulo) {
-    alert('Por favor ingresa un título');
-    return;
-  }
-
-  try {
-    const pieza = await obtenerPiezaDB(idPiezaActual);
-    
-    if (!pieza) {
-      alert('Pieza no encontrada');
-      return;
-    }
-
-    pieza.titulo = titulo;
-    pieza.compositor = document.getElementById('pCompositor')?.value || '';
-    pieza.tonalidad = document.getElementById('pTonalidad')?.value || '';
-    pieza.compas = document.getElementById('pCompas')?.value || '';
-    pieza.extension = document.getElementById('pExtension')?.value || '';
-    pieza.fechaInicio = document.getElementById('pFechaInicio')?.value || '';
-    pieza.estructura = document.getElementById('pEstructura')?.value || '';
-    pieza.puntosDificiles = document.getElementById('pPuntosDificiles')?.value || '';
-    pieza.acompanamiento = document.getElementById('pAcompanamiento')?.value || '';
-
-    await guardarPiezaDB(pieza);
-    
-    // Actualizar título de la página
-    const tituloPieza = document.getElementById('tituloPieza');
-    if (tituloPieza) {
-      tituloPieza.textContent = pieza.titulo;
-    }
-    
-    alert('Cambios guardados correctamente');
-
-  } catch (error) {
-    console.error('Error al guardar pieza:', error);
-    alert('Error al guardar pieza');
-  }
-}
-
-async function guardarSesion() {
-  const sFecha = document.getElementById('sFecha');
-  const sFragmento = document.getElementById('sFragmento');
-  
-  const fecha = sFecha ? sFecha.value : '';
-  const fragmento = sFragmento ? sFragmento.value : '';
-  
-  const progreso = document.getElementById('sProgreso')?.value || '';
-  const enfoque = document.getElementById('sEnfoque')?.value || '';
-  const otroEnfoque = document.getElementById('sOtroEnfoque')?.value || '';
-  const sentimientos = Array.from(document.querySelectorAll('input[name="sentimientos"]:checked'))
-    .map(cb => cb.value);
-  const grabado = document.getElementById('sGrabado')?.checked || false;
-  const notas = document.getElementById('sNotas')?.value || '';
-
-  if (!fecha || !fragmento) {
-    alert('Por favor rellena fecha y fragmento');
-    return;
-  }
-
-  const enfoqueGuardar = enfoque === 'Otro' ? otroEnfoque : enfoque;
-
-  try {
-    const sesion = {
+    const fragmento = {
       id: Date.now().toString(),
-      pieceId: idPiezaActual,
-      fecha,
-      fragmento,
-      progreso,
-      enfoque: enfoqueGuardar,
-      sentimientos,
-      grabado,
-      notas,
-      tiempo: tiempoTranscurrido
+      piezaId: piezaId,
+      nombre: nombreFragmento,
+      compases: compasesFragmento
     };
 
-    await guardarSesionDB(sesion);
+    const tx = db.transaction('fragmentos', 'readwrite');
+    await tx.objectStore('fragmentos').add(fragmento);
+    await tx.done;
 
-    detenerTemporizador();
-    tiempoTranscurrido = 0;
-    
-    const tiempoDisplay = document.getElementById('tiempoDisplay');
-    if (tiempoDisplay) tiempoDisplay.textContent = '0h 0m 0s';
+    // Limpiar inputs
+    document.getElementById('sNombreFragmento').value = '';
+    document.getElementById('sCompasesFragmento').value = '';
 
-    // Limpiar formulario
-    if (sFecha) sFecha.value = new Date().toISOString().split('T')[0];
-    if (sFragmento) sFragmento.value = '';
+    // Recargar select
+    cargarFragmentosEnSelect(db, piezaId);
+
+    alert('Fragmento agregado correctamente');
+
+  } catch (error) {
+    console.error('Error al agregar fragmento:', error);
+    alert('Error al agregar fragmento');
+  }
+}
+
+// ===== BORRAR FRAGMENTO =====
+async function borrarFragmento() {
+  const select = document.getElementById('sFragmento');
+  const fragmentoId = select.value;
+
+  if (!fragmentoId) {
+    alert('Selecciona un fragmento para borrar');
+    return;
+  }
+
+  if (!confirm('¿Estás seguro de que deseas borrar este fragmento?')) {
+    return;
+  }
+
+  try {
+    const db = await abrirDB();
+    const tx = db.transaction('fragmentos', 'readwrite');
+    await tx.objectStore('fragmentos').delete(fragmentoId);
+    await tx.done;
+
+    const piezaId = window.piezaIdActual;
+    cargarFragmentosEnSelect(db, piezaId);
+
+    alert('Fragmento borrado correctamente');
+
+  } catch (error) {
+    console.error('Error al borrar fragmento:', error);
+    alert('Error al borrar fragmento');
+  }
+}
+
+// ===== INICIAR TEMPORIZADOR =====
+let intervalo = null;
+let tiempoSegundos = 0;
+
+function iniciarTemporizador() {
+  if (intervalo) return; // Ya está corriendo
+
+  intervalo = setInterval(() => {
+    tiempoSegundos++;
+    actualizarDisplayTiempo();
+  }, 1000);
+}
+
+// ===== PAUSAR TEMPORIZADOR =====
+function pausarTemporizador() {
+  if (intervalo) {
+    clearInterval(intervalo);
+    intervalo = null;
+  }
+}
+
+// ===== DETENER TEMPORIZADOR =====
+function detenerTemporizador() {
+  pausarTemporizador();
+  tiempoSegundos = 0;
+  actualizarDisplayTiempo();
+}
+
+// ===== ACTUALIZAR DISPLAY DE TIEMPO =====
+function actualizarDisplayTiempo() {
+  const horas = Math.floor(tiempoSegundos / 3600);
+  const minutos = Math.floor((tiempoSegundos % 3600) / 60);
+  const segundos = tiempoSegundos % 60;
+
+  const displayTiempo = document.getElementById('displayTiempo');
+  if (displayTiempo) {
+    displayTiempo.textContent = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+  }
+}
+
+// ===== GUARDAR SESIÓN =====
+async function guardarSesion() {
+  try {
+    const piezaId = window.piezaIdActual;
+    const fragmentoId = document.getElementById('sFragmento').value;
+    const progresoInput = document.getElementById('sProgreso').value;
+
+    if (!piezaId) {
+      alert('Debes tener una pieza cargada');
+      return;
+    }
+
+    if (!fragmentoId) {
+      alert('Selecciona un fragmento');
+      return;
+    }
+
+    if (!progresoInput) {
+      alert('Selecciona un estado de progreso (bola)');
+      return;
+    }
+
+    const sentimientos = document.getElementById('sSentimientos').value || '';
+    const notas = document.getElementById('sNotas').value || '';
+    const grabacion = document.getElementById('sGrabacion').value || '';
+
+    const sesion = {
+      id: Date.now().toString(),
+      piezaId: piezaId,
+      fragmentoId: fragmentoId,
+      fecha: new Date().toISOString(),
+      progreso: progresoInput,
+      sentimientos: sentimientos,
+      notas: notas,
+      grabacion: grabacion,
+      segundos: tiempoSegundos
+    };
+
+    const db = await abrirDB();
+    const tx = db.transaction('sesiones', 'readwrite');
+    await tx.objectStore('sesiones').add(sesion);
+    await tx.done;
+
+    // Limpiar campos de sesión
+    document.getElementById('sSentimientos').value = '';
+    document.getElementById('sNotas').value = '';
+    document.getElementById('sGrabacion').value = '';
     document.getElementById('sProgreso').value = '';
     
-    // Desactivar botones de progreso
+    // Resetear bolas de progreso
     document.querySelectorAll('.btn-progreso').forEach(btn => {
       btn.classList.remove('activo');
     });
-    
-    document.getElementById('sEnfoque').value = '';
-    document.getElementById('sOtroEnfoque').value = '';
-    document.getElementById('sGrabado').checked = false;
-    document.getElementById('sNotas').value = '';
-    document.querySelectorAll('input[name="sentimientos"]').forEach(cb => cb.checked = false);
 
-    await cargarSesiones();
-    await cargarDatosInforme();
+    // Resetear temporizador
+    detenerTemporizador();
 
-    const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
-    const tiempoTotalPieza = document.getElementById('tiempoTotalPieza');
-    if (tiempoTotalPieza) {
-      tiempoTotalPieza.textContent = formatearTiempo(tiempoTotal);
-    }
+    // Recargar historial
+    mostrarHistorial(piezaId);
+
+    // Actualizar tiempo total
+    actualizarTiempoTotal(db, piezaId);
 
     alert('Sesión guardada correctamente');
 
@@ -380,132 +283,274 @@ async function guardarSesion() {
   }
 }
 
-function iniciarTemporizador() {
-  if (timerInterval) return;
+// ===== MOSTRAR HISTORIAL DE SESIONES =====
+async function mostrarHistorial(piezaId) {
+  try {
+    const db = await abrirDB();
+    const tx = db.transaction('sesiones', 'readonly');
+    const sesiones = await tx.objectStore('sesiones')
+      .getAll();
 
-  timerInterval = setInterval(() => {
-    tiempoTranscurrido++;
-    const tiempoDisplay = document.getElementById('tiempoDisplay');
-    if (tiempoDisplay) {
-      tiempoDisplay.textContent = formatearTiempo(tiempoTranscurrido);
+    const sesionesFiltradasPorPieza = sesiones.filter(s => s.piezaId === piezaId);
+    const historialDiv = document.getElementById('historial');
+
+    if (!historialDiv) return;
+
+    if (sesionesFiltradasPorPieza.length === 0) {
+      historialDiv.innerHTML = '<p>No hay sesiones registradas</p>';
+      return;
     }
-  }, 1000);
-}
 
-function pausarTemporizador() {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
+    let html = '<h3>Historial de sesiones</h3>';
+    html += '<ul>';
+
+    sesionesFiltradasPorPieza.forEach(sesion => {
+      const fecha = new Date(sesion.fecha).toLocaleDateString('es-ES');
+      const tiempo = formatearTiempo(sesion.segundos);
+      const fragmentoNombre = obtenerNombreFragmento(db, sesion.fragmentoId);
+
+      html += `
+        <li>
+          <p><strong>Fecha:</strong> ${fecha}</p>
+          <p><strong>Fragmento:</strong> ${fragmentoNombre || 'Sin nombre'}</p>
+          <p><strong>Tiempo:</strong> ${tiempo}</p>
+          <p><strong>Estado:</strong> ${sesion.progreso || '-'}</p>
+          <p><strong>Sentimientos:</strong> ${sesion.sentimientos || '-'}</p>
+          <p><strong>Notas:</strong> ${sesion.notas || '-'}</p>
+          <p><strong>Grabación:</strong> ${sesion.grabacion || '-'}</p>
+          <button onclick="borrarSesion('${sesion.id}', '${piezaId}')">Borrar</button>
+        </li>
+      `;
+    });
+
+    html += '</ul>';
+    historialDiv.innerHTML = html;
+
+  } catch (error) {
+    console.error('Error al mostrar historial:', error);
   }
 }
 
-function detenerTemporizador() {
-  pausarTemporizador();
-  tiempoTranscurrido = 0;
-  const tiempoDisplay = document.getElementById('tiempoDisplay');
-  if (tiempoDisplay) {
-    tiempoDisplay.textContent = '0h 0m 0s';
+// ===== BORRAR SESIÓN =====
+async function borrarSesion(sesionId, piezaId) {
+  if (!confirm('¿Estás seguro de que deseas borrar esta sesión?')) {
+    return;
+  }
+
+  try {
+    const db = await abrirDB();
+    const tx = db.transaction('sesiones', 'readwrite');
+    await tx.objectStore('sesiones').delete(sesionId);
+    await tx.done;
+
+    mostrarHistorial(piezaId);
+    actualizarTiempoTotal(db, piezaId);
+
+    alert('Sesión borrada correctamente');
+
+  } catch (error) {
+    console.error('Error al borrar sesión:', error);
+    alert('Error al borrar sesión');
   }
 }
 
+// ===== GUARDAR PIEZA =====
+async function guardarPieza() {
+  try {
+    const piezaId = window.piezaIdActual;
+
+    if (!piezaId) {
+      alert('No hay pieza cargada');
+      return;
+    }
+
+    const titulo = document.getElementById('sTitulo').value.trim();
+    if (!titulo) {
+      alert('El título es obligatorio');
+      return;
+    }
+
+    const pieza = {
+      id: piezaId,
+      titulo: titulo,
+      compositor: document.getElementById('sCompositor').value.trim(),
+      tonalidad: document.getElementById('sTonalidad').value.trim(),
+      compas: document.getElementById('sCompas').value.trim(),
+      extension: document.getElementById('sExtension').value.trim(),
+      fecha: document.getElementById('sFecha').value.trim(),
+      estructura: document.getElementById('sEstructura').value.trim(),
+      puntosDificiles: document.getElementById('sPuntosDificiles').value.trim(),
+      acompanamiento: document.getElementById('sAcompanamiento').value.trim()
+    };
+
+    const db = await abrirDB();
+    const tx = db.transaction('piezas', 'readwrite');
+    await tx.objectStore('piezas').put(pieza);
+    await tx.done;
+
+    alert('Pieza guardada correctamente');
+
+  } catch (error) {
+    console.error('Error al guardar pieza:', error);
+    alert('Error al guardar pieza');
+  }
+}
+
+// ===== BORRAR PIEZA =====
+async function borrarPieza() {
+  if (!confirm('¿Estás seguro de que deseas borrar esta pieza y todas sus sesiones?')) {
+    return;
+  }
+
+  try {
+    const piezaId = window.piezaIdActual;
+    const db = await abrirDB();
+
+    // Borrar pieza
+    let tx = db.transaction('piezas', 'readwrite');
+    await tx.objectStore('piezas').delete(piezaId);
+    await tx.done;
+
+    // Borrar fragmentos
+    tx = db.transaction('fragmentos', 'readwrite');
+    const fragmentos = await tx.objectStore('fragmentos').getAll();
+    fragmentos.forEach(f => {
+      if (f.piezaId === piezaId) {
+        tx.objectStore('fragmentos').delete(f.id);
+      }
+    });
+    await tx.done;
+
+    // Borrar sesiones
+    tx = db.transaction('sesiones', 'readwrite');
+    const sesiones = await tx.objectStore('sesiones').getAll();
+    sesiones.forEach(s => {
+      if (s.piezaId === piezaId) {
+        tx.objectStore('sesiones').delete(s.id);
+      }
+    });
+    await tx.done;
+
+    alert('Pieza borrada correctamente');
+    window.location.href = 'index.html';
+
+  } catch (error) {
+    console.error('Error al borrar pieza:', error);
+    alert('Error al borrar pieza');
+  }
+}
+
+// ===== ACTUALIZAR TIEMPO TOTAL =====
+async function actualizarTiempoTotal(db, piezaId) {
+  try {
+    const tx = db.transaction('sesiones', 'readonly');
+    const sesiones = await tx.objectStore('sesiones').getAll();
+
+    const sesionesFiltradasPorPieza = sesiones.filter(s => s.piezaId === piezaId);
+    const totalSegundos = sesionesFiltradasPorPieza.reduce((sum, s) => sum + (s.segundos || 0), 0);
+
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+
+    const tiempoTotal = document.getElementById('tiempoTotal');
+    if (tiempoTotal) {
+      tiempoTotal.textContent = `Tiempo total practicado: ${horas}h ${minutos}m`;
+    }
+
+  } catch (error) {
+    console.error('Error al actualizar tiempo total:', error);
+  }
+}
+
+// ===== FUNCIONES AUXILIARES DE BD =====
+
+async function abrirDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('pianoDB', 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+async function obtenerPieza(db, piezaId) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('piezas', 'readonly');
+    const request = tx.objectStore('piezas').get(piezaId);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+async function obtenerFragmentos(db, piezaId) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('fragmentos', 'readonly');
+    const request = tx.objectStore('fragmentos').getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const fragmentos = request.result.filter(f => f.piezaId === piezaId);
+      resolve(fragmentos);
+    };
+  });
+}
+
+async function obtenerNombreFragmento(db, fragmentoId) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('fragmentos', 'readonly');
+    const request = tx.objectStore('fragmentos').get(fragmentoId);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const fragmento = request.result;
+      resolve(fragmento ? fragmento.nombre : null);
+    };
+  });
+}
+
+// ===== FORMATEAR TIEMPO =====
 function formatearTiempo(segundos) {
-  if (!segundos || segundos === 0) return '0h 0m 0s';
-  
   const horas = Math.floor(segundos / 3600);
   const minutos = Math.floor((segundos % 3600) / 60);
   const segs = segundos % 60;
-  
   return `${horas}h ${minutos}m ${segs}s`;
 }
 
-async function calcularTiempoTotal(pieceId) {
-  const sesiones = await obtenerSesionesDB();
-  const sesionesFiltradasOrdenadas = sesiones.filter(s => s.pieceId === pieceId);
-  return sesionesFiltradasOrdenadas.reduce((sum, s) => sum + (s.tiempo || 0), 0);
+// ===== CAMBIAR VISTA =====
+function mostrarVista(vista) {
+  // Ocultar todas las vistas
+  document.querySelectorAll('[data-vista]').forEach(el => {
+    el.style.display = 'none';
+  });
+
+  // Mostrar la vista seleccionada
+  const vistaElement = document.querySelector(`[data-vista="${vista}"]`);
+  if (vistaElement) {
+    vistaElement.style.display = 'block';
+  }
+
+  // Actualizar botones activos
+  document.querySelectorAll('[data-vista-btn]').forEach(btn => {
+    btn.classList.remove('activo');
+  });
+  const btnActivo = document.querySelector(`[data-vista-btn="${vista}"]`);
+  if (btnActivo) {
+    btnActivo.classList.add('activo');
+  }
 }
 
-function configurarEventos() {
-  // Botón guardar pieza
-  const btnGuardarPieza = document.getElementById('btnGuardarPieza');
-  if (btnGuardarPieza) {
-    btnGuardarPieza.onclick = guardarPieza;
-  }
+// ===== MANEJO DE BOLAS DE PROGRESO =====
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.btn-progreso').forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Desactivar todos los botones
+      document.querySelectorAll('.btn-progreso').forEach(b => {
+        b.classList.remove('activo');
+      });
 
-  // Botón agregar fragmento
-  const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
-  if (btnAgregarFragmento) {
-    btnAgregarFragmento.addEventListener('click', (e) => {
-      e.preventDefault();
-      agregarFragmento();
-    });
-  }
+      // Activar el botón clickeado
+      this.classList.add('activo');
 
-  // Botones temporizador
-  const btnIniciar = document.querySelector('[data-accion="iniciar-temporizador"]');
-  const btnPausar = document.querySelector('[data-accion="pausar-temporizador"]');
-  const btnDetener = document.querySelector('[data-accion="detener-temporizador"]');
-  const btnGuardarSesion = document.querySelector('[data-accion="guardar-sesion"]');
-  const btnDescargarPDF = document.querySelector('[data-accion="descargar-pdf"]');
-
-  if (btnIniciar) btnIniciar.addEventListener('click', iniciarTemporizador);
-  if (btnPausar) btnPausar.addEventListener('click', pausarTemporizador);
-  if (btnDetener) btnDetener.addEventListener('click', detenerTemporizador);
-  if (btnGuardarSesion) {
-    btnGuardarSesion.addEventListener('click', (e) => {
-      e.preventDefault();
-      guardarSesion();
-    });
-  }
-  if (btnDescargarPDF) {
-    btnDescargarPDF.addEventListener('click', () => {
-      const pTitulo = document.getElementById('pTitulo');
-      const nombrePieza = pTitulo ? pTitulo.value : 'Pieza';
-      descargarPDFInforme(nombrePieza);
-    });
-  }
-
-  // Botón vista informe
-  const btnVistaInforme = document.querySelector('[data-vista="informe"]');
-  if (btnVistaInforme) {
-    btnVistaInforme.addEventListener('click', () => {
-      const vistaInforme = document.getElementById('vistaInforme');
-      if (vistaInforme) {
-        vistaInforme.style.display = 'block';
-      }
-      btnVistaInforme.classList.add('activo');
-    });
-  }
-
-  // Fecha automática
-  const inputFecha = document.getElementById('sFecha');
-  if (inputFecha && !inputFecha.value) {
-    inputFecha.value = new Date().toISOString().split('T')[0];
-  }
-
-  // Cambiar campo de enfoque
-  const selectEnfoque = document.getElementById('sEnfoque');
-  const otroEnfoqueDiv = document.getElementById('otroEnfoqueDiv');
-  if (selectEnfoque && otroEnfoqueDiv) {
-    selectEnfoque.addEventListener('change', () => {
-      otroEnfoqueDiv.style.display = selectEnfoque.value === 'Otro' ? 'block' : 'none';
-    });
-  }
-
-  // Botones de progreso
-  const botonesProgreso = document.querySelectorAll('.btn-progreso');
-  const inputProgreso = document.getElementById('sProgreso');
-  
-  botonesProgreso.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      // Desactivar todos
-      botonesProgreso.forEach(b => b.classList.remove('activo'));
-      // Activar el clickeado
-      btn.classList.add('activo');
-      // Guardar valor
-      if (inputProgreso) {
-        inputProgreso.value = btn.dataset.progreso;
-      }
+      // Guardar el valor en el input hidden
+      const progreso = this.getAttribute('data-progreso');
+      document.getElementById('sProgreso').value = progreso;
     });
   });
-}
+});

@@ -338,8 +338,15 @@ textarea.input {
 /* BOTONES DE PROGRESO */
 .botones-progreso {
   display: flex;
-  gap: 15px;
+  gap: 30px;
   margin-top: 10px;
+}
+
+.boton-progreso-grupo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-progreso {
@@ -366,19 +373,27 @@ textarea.input {
   border-color: #8ab4d5;
 }
 
-.btn-progreso[data-progreso="Peor"].activo {
-  background-color: #c89999;
-  border-color: #c89999;
+.btn-progreso[data-progreso="En proceso"].activo {
+  background-color: #e74c3c;
+  border-color: #e74c3c;
 }
 
-.btn-progreso[data-progreso="Igual"].activo {
-  background-color: #d4b896;
-  border-color: #d4b896;
+.btn-progreso[data-progreso="Sale mejor"].activo {
+  background-color: #f39c12;
+  border-color: #f39c12;
 }
 
-.btn-progreso[data-progreso="Mejor"].activo {
-  background-color: #8ab4d5;
-  border-color: #8ab4d5;
+.btn-progreso[data-progreso="Dominado"].activo {
+  background-color: #27ae60;
+  border-color: #27ae60;
+}
+
+.titulo-progreso {
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+  text-align: center;
+  width: 70px;
 }
 
 .checkbox-grupo {
@@ -745,5 +760,9 @@ textarea.input {
   .pieza-acciones a,
   .pieza-acciones button {
     flex: 1;
+  }
+
+  .botones-progreso {
+    gap: 20px;
   }
 }
