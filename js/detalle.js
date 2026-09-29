@@ -168,6 +168,19 @@ function configurarEventos() {
     compasSelect.addEventListener('change', actualizarMetronomo);
   }
 
+  // Configurar grabador de sesión
+  const btnGrabar = document.getElementById('btnGrabarSesion');
+  if (btnGrabar) {
+    btnGrabar.removeEventListener('click', toggleGrabacionSesion);
+    btnGrabar.addEventListener('click', toggleGrabacionSesion);
+  }
+
+  const btnReproducir = document.getElementById('btnReproducirGrabacion');
+  if (btnReproducir) {
+    btnReproducir.removeEventListener('click', reproducirGrabacion);
+    btnReproducir.addEventListener('click', reproducirGrabacion);
+  }
+
   // Inicializar indicador visual del metrónomo
   actualizarIndicadorPulsos();
 }
@@ -452,6 +465,80 @@ function actualizarMetronomo() {
   }
 }
 
+// ===== GRABADOR DE SESIÓN =====
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let grabacionActual = null;
+
+async function iniciarGrabacionSesion() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    isRecording = true;
+
+    const btnGrabar = document.getElementById('btnGrabarSesion');
+    btnGrabar.classList.add('grabando');
+    btnGrabar.title = 'Detener grabación';
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      grabacionActual = audioBlob;
+      
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audioElement = document.getElementById('audioGrabacion');
+      audioElement.src = audioUrl;
+
+      // Mostrar botón de reproducir
+      const btnReproducir = document.getElementById('btnReproducirGrabacion');
+      btnReproducir.style.display = 'inline-block';
+
+      isRecording = false;
+      const btnGrabar = document.getElementById('btnGrabarSesion');
+      btnGrabar.classList.remove('grabando');
+      btnGrabar.title = 'Grabar sesión';
+
+      // Marcar que se grabó
+      document.getElementById('sGrabado').checked = true;
+
+      alert('Grabación completada');
+    };
+
+    mediaRecorder.start();
+
+  } catch (error) {
+    console.error('Error al acceder al micrófono:', error);
+    alert('No se pudo acceder al micrófono. Verifica los permisos.');
+  }
+}
+
+function detenerGrabacionSesion() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+  }
+}
+
+function toggleGrabacionSesion() {
+  if (isRecording) {
+    detenerGrabacionSesion();
+  } else {
+    iniciarGrabacionSesion();
+  }
+}
+
+function reproducirGrabacion() {
+  const audioElement = document.getElementById('audioGrabacion');
+  if (audioElement.src) {
+    audioElement.play();
+  }
+}
+
 // ===== SELECCIONAR PROGRESO =====
 function seleccionarProgreso() {
   // Desactivar todos los botones
@@ -537,6 +624,14 @@ async function guardarSesion() {
 
     // Resetear temporizador
     detenerTemporizador();
+
+    // Resetear grabador
+    const btnGrabar = document.getElementById('btnGrabarSesion');
+    const btnReproducir = document.getElementById('btnReproducirGrabacion');
+    btnGrabar.classList.remove('grabando');
+    btnReproducir.style.display = 'none';
+    grabacionActual = null;
+    isRecording = false;
 
     // Recargar historial
     mostrarHistorial(piezaId);

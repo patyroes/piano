@@ -45,7 +45,17 @@
     <div id="vistaDetalle" style="display: none;">
       <div class="cabecera">
         <div class="cabecera_inner">
-          <h1 class="cabecera_titulo">Pieza</h1>
+          <div class="titulo-con-microfono">
+            <h1 class="cabecera_titulo">Pieza</h1>
+            <button type="button" id="btnGrabarNota" class="btn-microfono" title="Grabar nota de voz">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
+          </div>
           <a href="index.html" class="btn-volver">← Volver</a>
         </div>
       </div>
@@ -251,13 +261,28 @@
             </div>
           </div>
 
-          <div class="tarjeta_cuerpo rejilla">
-            <div>
-              <label class="checkbox-label">
+          <div class="tarjeta_cuerpo">
+            <div class="grabacion-sesion">
+              <button type="button" id="btnGrabarSesion" class="btn-microfono-sesion" title="Grabar sesión">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </button>
+              
+              <label class="checkbox-label" style="margin: 0;">
                 <input type="checkbox" id="sGrabado">
                 ¿Grabaste esta sesión?
               </label>
+
+              <button type="button" id="btnReproducirGrabacion" class="btn-reproducir" style="display: none;" title="Reproducir grabación">
+                ▶ Reproducir
+              </button>
             </div>
+            
+            <audio id="audioGrabacion" style="display: none;"></audio>
           </div>
 
           <div class="tarjeta_cuerpo">

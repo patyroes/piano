@@ -53,6 +53,37 @@ body {
   background-color: #999;
 }
 
+/* TÍTULO CON MICRÓFONO */
+.titulo-con-microfono {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-microfono {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.btn-microfono:hover {
+  background-color: #f0f0f0;
+  color: #8ab4d5;
+}
+
+.btn-microfono.grabando {
+  background-color: #ff6b6b;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
 /* CRÉDITO */
 .credito {
   border: 3px double #999;
@@ -418,6 +449,69 @@ textarea.input {
 .pulso.fuerte.activo {
   background-color: #ff9900;
   box-shadow: 0 0 15px rgba(255, 153, 0, 0.9);
+}
+
+/* GRABACIÓN DE SESIÓN */
+.grabacion-sesion {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.btn-microfono-sesion {
+  background: none;
+  border: 2px solid #ddd;
+  color: #666;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.btn-microfono-sesion:hover {
+  border-color: #8ab4d5;
+  color: #8ab4d5;
+  background-color: #f5f9fc;
+}
+
+.btn-microfono-sesion.grabando {
+  background-color: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+  animation: pulse 1s infinite;
+}
+
+.btn-reproducir {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-reproducir:hover {
+  background-color: #229954;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* BOTONES DE PROGRESO */
@@ -854,5 +948,13 @@ textarea.input {
 
   .metronomo-controles {
     flex-direction: column;
+  }
+
+  .grabacion-sesion {
+    flex-wrap: wrap;
+  }
+
+  .btn-reproducir {
+    flex: 1;
   }
 }
