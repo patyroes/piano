@@ -49,6 +49,12 @@ function inicializarNuevaPieza() {
   if (sFecha) {
     sFecha.valueAsDate = new Date();
   }
+
+  // Guardar piezaId temporal
+  window.piezaIdActual = null;
+
+  // Configurar eventos para nueva pieza
+  configurarEventosGlobales();
 }
 
 // ===== CARGAR PIEZA EXISTENTE =====
@@ -93,8 +99,8 @@ async function cargarPieza(piezaId) {
       sFecha.valueAsDate = new Date();
     }
 
-    // Configurar eventos
-    configurarEventos();
+    // Configurar eventos globales
+    configurarEventosGlobales();
 
   } catch (error) {
     console.error('Error al cargar pieza:', error);
@@ -102,8 +108,8 @@ async function cargarPieza(piezaId) {
   }
 }
 
-// ===== CONFIGURAR EVENTOS =====
-function configurarEventos() {
+// ===== CONFIGURAR EVENTOS GLOBALES =====
+function configurarEventosGlobales() {
   // Configurar evento guardar pieza
   const btnGuardarPieza = document.getElementById('btnGuardarPieza');
   if (btnGuardarPieza) {
@@ -252,14 +258,14 @@ async function agregarFragmento() {
     return;
   }
 
+  if (!window.piezaIdActual) {
+    alert('Debes guardar la pieza primero antes de agregar fragmentos');
+    return;
+  }
+
   try {
     const db = await abrirDB();
     const piezaId = window.piezaIdActual;
-
-    if (!piezaId) {
-      alert('Debes tener una pieza cargada');
-      return;
-    }
 
     const fragmento = {
       id: Date.now().toString(),
@@ -311,11 +317,16 @@ async function borrarFragmento(fragmentoId, piezaId) {
   }
 }
 
-// ===== TEMPORIZADOR =====
+// ===== TEMPORIZADOR POR SESIÓN =====
 let intervalo = null;
 let tiempoSegundos = 0;
 
 function iniciarTemporizador() {
+  if (!window.piezaIdActual) {
+    alert('Debes guardar la pieza primero');
+    return;
+  }
+
   if (intervalo) return; // Ya está corriendo
 
   intervalo = setInterval(() => {
@@ -363,10 +374,10 @@ function reproducirSonidoMetronomo(esFuerte = false) {
   env.connect(audioContext.destination);
 
   if (esFuerte) {
-    osc.frequency.value = 1200; // Frecuencia más alta para pulso fuerte
+    osc.frequency.value = 1200;
     env.gain.setValueAtTime(0.4, now);
   } else {
-    osc.frequency.value = 800; // Frecuencia más baja para pulso débil
+    osc.frequency.value = 800;
     env.gain.setValueAtTime(0.2, now);
   }
 
@@ -410,7 +421,6 @@ function toggleMetronomo() {
   }
 
   if (metronomeActive) {
-    // Detener metrónomo
     clearInterval(metronomeInterval);
     metronomeActive = false;
     metronomoPulsoActual = 0;
@@ -418,13 +428,12 @@ function toggleMetronomo() {
     btnMetronomo.textContent = 'Metrónomo';
     actualizarIndicadorPulsos();
   } else {
-    // Iniciar metrónomo
     metronomeActive = true;
     metronomoPulsoActual = 0;
     btnMetronomo.classList.add('activo');
     btnMetronomo.textContent = 'Metrónomo (activo)';
 
-    const intervalo = (60 / bpm) * 1000; // Convertir BPM a milisegundos
+    const intervalo = (60 / bpm) * 1000;
 
     metronomeInterval = setInterval(() => {
       const esFuerte = metronomoPulsoActual === 0;
@@ -494,7 +503,6 @@ async function iniciarGrabacionSesion() {
       const audioElement = document.getElementById('audioGrabacion');
       audioElement.src = audioUrl;
 
-      // Mostrar botón de reproducir
       const btnReproducir = document.getElementById('btnReproducirGrabacion');
       btnReproducir.style.display = 'inline-block';
 
@@ -503,7 +511,6 @@ async function iniciarGrabacionSesion() {
       btnGrabar.classList.remove('grabando');
       btnGrabar.title = 'Grabar sesión';
 
-      // Marcar que se grabó
       document.getElementById('sGrabado').checked = true;
 
       alert('Grabación completada');
@@ -541,15 +548,17 @@ function reproducirGrabacion() {
 
 // ===== SELECCIONAR PROGRESO =====
 function seleccionarProgreso() {
-  // Desactivar todos los botones
+  if (!window.piezaIdActual) {
+    alert('Debes guardar la pieza primero');
+    return;
+  }
+
   document.querySelectorAll('.btn-progreso').forEach(b => {
     b.classList.remove('activo');
   });
 
-  // Activar el botón clickeado
   this.classList.add('activo');
 
-  // Guardar el valor en el input hidden
   const progreso = this.getAttribute('data-progreso');
   document.getElementById('sProgreso').value = progreso;
 }
@@ -563,7 +572,7 @@ async function guardarSesion() {
     const sFecha = document.getElementById('sFecha').value;
 
     if (!piezaId) {
-      alert('Debes tener una pieza cargada');
+      alert('Debes guardar la pieza primero');
       return;
     }
 
@@ -582,7 +591,6 @@ async function guardarSesion() {
       return;
     }
 
-    // Recopilar sentimientos seleccionados
     const sentimientos = [];
     document.querySelectorAll('input[name="sentimientos"]:checked').forEach(cb => {
       sentimientos.push(cb.value);
@@ -622,8 +630,9 @@ async function guardarSesion() {
       btn.classList.remove('activo');
     });
 
-    // Resetear temporizador
-    detenerTemporizador();
+    // Resetear temporizador (IMPORTANTE: por sesión)
+    tiempoSegundos = 0;
+    actualizarDisplayTiempo();
 
     // Resetear grabador
     const btnGrabar = document.getElementById('btnGrabarSesion');
@@ -723,18 +732,18 @@ async function borrarSesion(sesionId, piezaId) {
 // ===== GUARDAR PIEZA =====
 async function guardarPieza() {
   try {
-    const piezaId = window.piezaIdActual;
-
-    if (!piezaId) {
-      alert('No hay pieza cargada');
-      return;
-    }
-
     const titulo = document.getElementById('pTitulo').value.trim();
     if (!titulo) {
       alert('El título es obligatorio');
       return;
     }
+
+    // Si es pieza nueva, crear ID
+    if (!window.piezaIdActual) {
+      window.piezaIdActual = Date.now().toString();
+    }
+
+    const piezaId = window.piezaIdActual;
 
     const pieza = {
       id: piezaId,
@@ -755,6 +764,12 @@ async function guardarPieza() {
     await tx.done;
 
     alert('Pieza guardada correctamente');
+
+    // Recargar fragmentos y sesiones
+    cargarFragmentosEnSelect(db, piezaId);
+    mostrarListaFragmentos(db, piezaId);
+    mostrarHistorial(piezaId);
+    actualizarTiempoTotal(db, piezaId);
 
   } catch (error) {
     console.error('Error al guardar pieza:', error);
@@ -840,12 +855,10 @@ function formatearTiempo(segundos) {
 
 // ===== CAMBIAR VISTA =====
 function mostrarVista(vista) {
-  // Ocultar todas las vistas
   document.querySelectorAll('[data-vista]').forEach(el => {
     el.style.display = 'none';
   });
 
-  // Mostrar la vista seleccionada
   const vistaElement = document.querySelector(`[data-vista="${vista}"]`);
   if (vistaElement) {
     vistaElement.style.display = 'block';
