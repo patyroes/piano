@@ -46,16 +46,16 @@ async function cargarPieza(piezaId) {
       return;
     }
 
-    // Llenar formulario con datos de la pieza
-    document.getElementById('sTitulo').value = pieza.titulo || '';
-    document.getElementById('sCompositor').value = pieza.compositor || '';
-    document.getElementById('sTonalidad').value = pieza.tonalidad || '';
-    document.getElementById('sCompas').value = pieza.compas || '';
-    document.getElementById('sExtension').value = pieza.extension || '';
-    document.getElementById('sFecha').value = pieza.fecha || '';
-    document.getElementById('sEstructura').value = pieza.estructura || '';
-    document.getElementById('sPuntosDificiles').value = pieza.puntosDificiles || '';
-    document.getElementById('sAcompanamiento').value = pieza.acompanamiento || '';
+    // Llenar formulario con datos de la pieza (usando IDs correctos)
+    document.getElementById('pTitulo').value = pieza.titulo || '';
+    document.getElementById('pCompositor').value = pieza.compositor || '';
+    document.getElementById('pTonalidad').value = pieza.tonalidad || '';
+    document.getElementById('pCompas').value = pieza.compas || '';
+    document.getElementById('pExtension').value = pieza.extension || '';
+    document.getElementById('pFechaInicio').value = pieza.fecha || '';
+    document.getElementById('pEstructura').value = pieza.estructura || '';
+    document.getElementById('pPuntosDificiles').value = pieza.puntosDificiles || '';
+    document.getElementById('pAcompanamiento').value = pieza.acompanamiento || '';
 
     // Cargar fragmentos en el desplegable
     cargarFragmentosEnSelect(db, piezaId);
@@ -364,7 +364,7 @@ async function guardarPieza() {
       return;
     }
 
-    const titulo = document.getElementById('sTitulo').value.trim();
+    const titulo = document.getElementById('pTitulo').value.trim();
     if (!titulo) {
       alert('El título es obligatorio');
       return;
@@ -373,14 +373,14 @@ async function guardarPieza() {
     const pieza = {
       id: piezaId,
       titulo: titulo,
-      compositor: document.getElementById('sCompositor').value.trim(),
-      tonalidad: document.getElementById('sTonalidad').value.trim(),
-      compas: document.getElementById('sCompas').value.trim(),
-      extension: document.getElementById('sExtension').value.trim(),
-      fecha: document.getElementById('sFecha').value.trim(),
-      estructura: document.getElementById('sEstructura').value.trim(),
-      puntosDificiles: document.getElementById('sPuntosDificiles').value.trim(),
-      acompanamiento: document.getElementById('sAcompanamiento').value.trim()
+      compositor: document.getElementById('pCompositor').value.trim(),
+      tonalidad: document.getElementById('pTonalidad').value.trim(),
+      compas: document.getElementById('pCompas').value.trim(),
+      extension: document.getElementById('pExtension').value.trim(),
+      fecha: document.getElementById('pFechaInicio').value.trim(),
+      estructura: document.getElementById('pEstructura').value.trim(),
+      puntosDificiles: document.getElementById('pPuntosDificiles').value.trim(),
+      acompanamiento: document.getElementById('pAcompanamiento').value.trim()
     };
 
     const db = await abrirDB();
