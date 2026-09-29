@@ -279,13 +279,15 @@ async function mostrarListadoPiezas() {
       const card = document.createElement('div');
       card.className = 'pieza-card';
       card.innerHTML = `
-        <div class="pieza-titulo">${pieza.titulo}</div>
-        ${pieza.compositor ? `<div class="pieza-compositor">${pieza.compositor}</div>` : ''}
-        <div class="pieza-info">
-          ${pieza.tonalidad ? `<strong>${pieza.tonalidad}</strong> | ` : ''}
-          ${pieza.compas ? `${pieza.compas}` : ''}
+        <div class="pieza-info-contenedor">
+          <div class="pieza-titulo">${pieza.titulo}</div>
+          ${pieza.compositor ? `<div class="pieza-compositor">${pieza.compositor}</div>` : ''}
+          <div class="pieza-info">
+            ${pieza.tonalidad ? `<strong>${pieza.tonalidad}</strong> | ` : ''}
+            ${pieza.compas ? `${pieza.compas}` : ''}
+          </div>
+          <div class="pieza-tiempo">Tiempo: ${tiempoFormato}</div>
         </div>
-        <div class="pieza-tiempo">Tiempo: ${tiempoFormato}</div>
         <div class="pieza-acciones">
           <a href="index.html?id=${pieza.id}" class="btn-abrir">Abrir</a>
           <button class="btn-eliminar" data-id="${pieza.id}">Eliminar</button>
@@ -333,30 +335,17 @@ function mostrarFormularioNuevaPieza() {
   document.getElementById('listaFragmentos').innerHTML = '';
   document.getElementById('listaSesiones').innerHTML = '';
   document.getElementById('tiempoTotalPieza').textContent = '0h 0m 0s';
+  document.getElementById('tituloPieza').textContent = 'Nueva pieza';
 
-  // Mostrar vista análisis
-  const vistaAnalisis = document.getElementById('vistaAnalisis');
-  const vistaFragmentos = document.getElementById('vistaFragmentos');
-  const vistaSesiones = document.getElementById('vistaSesiones');
-  const vistaInforme = document.getElementById('vistaInforme');
-
-  if (vistaAnalisis) vistaAnalisis.style.display = 'block';
-  if (vistaFragmentos) vistaFragmentos.style.display = 'none';
-  if (vistaSesiones) vistaSesiones.style.display = 'none';
-  if (vistaInforme) vistaInforme.style.display = 'none';
-
-  // Desactivar botones vista
-  document.querySelectorAll('.btn-vista').forEach(btn => btn.classList.remove('activo'));
-  document.querySelector('[data-vista="analisis"]').classList.add('activo');
+  // Ocultar informe
+  document.getElementById('vistaInforme').style.display = 'none';
+  document.querySelector('[data-vista="informe"]').classList.remove('activo');
 
   // Configurar evento guardar
   const btnGuardar = document.getElementById('btnGuardarPieza');
   if (btnGuardar) {
     btnGuardar.onclick = guardarNuevaPieza;
   }
-
-  // Actualizar título
-  document.querySelector('.cabecera_titulo').textContent = 'Nueva pieza';
 }
 
 // Guardar nueva pieza
@@ -410,30 +399,8 @@ async function mostrarDetallePieza(id) {
       return;
     }
 
-    // Actualizar título
-    const tituloPieza = document.getElementById('tituloPieza');
-    if (tituloPieza) {
-      tituloPieza.textContent = pieza.titulo;
-    }
-
-    // Configurar evento guardar cambios
-    const btnGuardar = document.getElementById('btnGuardarPieza');
-    if (btnGuardar) {
-      btnGuardar.onclick = async () => {
-        pieza.titulo = document.getElementById('pTitulo').value;
-        pieza.compositor = document.getElementById('pCompositor').value;
-        pieza.tonalidad = document.getElementById('pTonalidad').value;
-        pieza.compas = document.getElementById('pCompas').value;
-        pieza.extension = document.getElementById('pExtension').value;
-        pieza.fechaInicio = document.getElementById('pFechaInicio').value;
-        pieza.estructura = document.getElementById('pEstructura').value;
-        pieza.puntosDificiles = document.getElementById('pPuntosDificiles').value;
-        pieza.acompanamiento = document.getElementById('pAcompanamiento').value;
-
-        await guardarPiezaDB(pieza);
-        alert('Cambios guardados');
-      };
-    }
+    // Los campos se cargarán en detalle.js mediante cargarPieza()
+    // Aquí solo necesitamos asegurar que la vista detalle está visible
 
   } catch (error) {
     console.error('Error al mostrar detalle:', error);
