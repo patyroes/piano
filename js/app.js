@@ -1,5 +1,4 @@
 // app.js - Lógica principal de la aplicación
-
 // Registrar Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(err => {
@@ -15,6 +14,7 @@ let sesiones = [];
 const DB_NAME = 'pianoDB';
 const DB_VERSION = 1;
 const STORE_PIEZAS = 'piezas';
+const STORE_FRAGMENTOS = 'fragmentos';
 const STORE_SESIONES = 'sesiones';
 
 let db = null;
@@ -35,6 +35,9 @@ function inicializarDB() {
       if (!database.objectStoreNames.contains(STORE_PIEZAS)) {
         database.createObjectStore(STORE_PIEZAS, { keyPath: 'id' });
       }
+      if (!database.objectStoreNames.contains(STORE_FRAGMENTOS)) {
+        database.createObjectStore(STORE_FRAGMENTOS, { keyPath: 'id' });
+      }
       if (!database.objectStoreNames.contains(STORE_SESIONES)) {
         database.createObjectStore(STORE_SESIONES, { keyPath: 'id' });
       }
@@ -43,6 +46,7 @@ function inicializarDB() {
 }
 
 // Funciones de Base de Datos
+
 async function obtenerPiezasDB() {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_PIEZAS], 'readonly');
@@ -188,7 +192,7 @@ async function importarDatos(event) {
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     await inicializarDB();
-    
+
     // Detectar si estamos en vista lista o detalle
     const params = new URLSearchParams(window.location.search);
     const vista = params.get('vista');
@@ -246,13 +250,13 @@ async function mostrarListadoPiezas() {
 
     if (!listaPiezas) return;
 
-    // Ordenar por última sesión
+    // Ordenar por última sesión (CORREGIDO: piezaId en lugar de pieceId)
     piezas.sort((a, b) => {
       const ultimaSesionA = sesiones
-        .filter(s => s.pieceId === a.id)
+        .filter(s => s.piezaId === a.id)
         .sort((x, y) => new Date(y.fecha) - new Date(x.fecha))[0];
       const ultimaSesionB = sesiones
-        .filter(s => s.pieceId === b.id)
+        .filter(s => s.piezaId === b.id)
         .sort((x, y) => new Date(y.fecha) - new Date(x.fecha))[0];
 
       const fechaA = ultimaSesionA ? new Date(ultimaSesionA.fecha) : new Date(a.fechaInicio || 0);
@@ -274,8 +278,8 @@ async function mostrarListadoPiezas() {
     // Crear tarjetas de piezas
     piezas.forEach(pieza => {
       const tiempoTotal = sesiones
-        .filter(s => s.pieceId === pieza.id)
-        .reduce((sum, s) => sum + (s.tiempo || 0), 0);
+        .filter(s => s.piezaId === pieza.id)
+        .reduce((sum, s) => sum + (s.segundos || 0), 0);
 
       const tiempoFormato = formatearTiempo(tiempoTotal);
 
@@ -338,16 +342,6 @@ function mostrarFormularioNuevaPieza() {
   document.getElementById('pPuntosDificiles').value = '';
   document.getElementById('pAcompanamiento').value = '';
 
-  // Limpiar otras secciones
-  document.getElementById('listaFragmentos').innerHTML = '';
-  document.getElementById('listaSesiones').innerHTML = '';
-  document.getElementById('tiempoTotalPieza').textContent = '0h 0m 0s';
-  document.getElementById('tituloPieza').textContent = 'Nueva pieza';
-
-  // Ocultar informe
-  document.getElementById('vistaInforme').style.display = 'none';
-  document.querySelector('[data-vista="informe"]').classList.remove('activo');
-
   // Configurar evento guardar
   const btnGuardar = document.getElementById('btnGuardarPieza');
   if (btnGuardar) {
@@ -371,16 +365,15 @@ async function guardarNuevaPieza() {
       tonalidad: document.getElementById('pTonalidad').value,
       compas: document.getElementById('pCompas').value,
       extension: document.getElementById('pExtension').value,
-      fechaInicio: document.getElementById('pFechaInicio').value,
+      fecha: document.getElementById('pFechaInicio').value,
       estructura: document.getElementById('pEstructura').value,
       puntosDificiles: document.getElementById('pPuntosDificiles').value,
-      acompanamiento: document.getElementById('pAcompanamiento').value,
-      fragmentos: []
+      acompanamiento: document.getElementById('pAcompanamiento').value
     };
 
     await guardarPiezaDB(pieza);
     alert('Pieza creada correctamente');
-    
+
     // Redirigir a la pieza
     window.location.href = `index.html?id=${pieza.id}`;
 
@@ -417,10 +410,10 @@ async function mostrarDetallePieza(id) {
 // Función auxiliar para formatear tiempo
 function formatearTiempo(segundos) {
   if (!segundos || segundos === 0) return '0h 0m 0s';
-  
+
   const horas = Math.floor(segundos / 3600);
   const minutos = Math.floor((segundos % 3600) / 60);
   const segs = segundos % 60;
-  
+
   return `${horas}h ${minutos}m ${segs}s`;
 }
