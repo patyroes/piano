@@ -3,334 +3,297 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mis piezas · Guía de práctica</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <title>Guía de práctica de piano</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="iconos/icono-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- html2pdf para descargar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-
-  <!-- =========================================================
-       VISTA 1 · LISTADO DE PIEZAS  (lógica en js/index.js)
-       ========================================================= -->
-  <div id="vistaLista" class="oculto">
-
+  <div id="vistalista">
+    <!-- CABECERA -->
     <header class="cabecera">
-      <div class="contenedor cabecera__inner">
-        <div>
-          <h1 class="cabecera__titulo">🎹 Mis piezas</h1>
-          <div class="credito">
-            <p>Formulario creado por<br><strong>María del Carmen Manera Guzmán</strong></p>
-          </div>
-        </div>
-        <a class="btn btn--primario" href="index.html?nueva=1">+ Nueva pieza</a>
+      <div class="contenedor cabecera_inner">
+        <h1 class="cabecera_titulo">Mis piezas</h1>
+        <a href="index.html?vista=nueva" class="btn btn-primario">Nueva pieza</a>
+      </div>
+      <!-- Crédito -->
+      <div class="credito">
+        <p>Formulario creado por<br>María del Carmen Manera Guzmán</p>
       </div>
     </header>
 
+    <!-- ACCIONES -->
+    <div class="acciones">
+      <button id="btnExportar" class="btn btn-secundario">Exportar datos</button>
+      <button id="btnImportar" class="btn btn-secundario">Importar datos</button>
+      <input type="file" id="inputImportar" style="display: none;" accept=".json">
+    </div>
+
+    <!-- LISTADO DE PIEZAS -->
     <main class="contenedor">
-      <p class="contador" id="contador">Cargando…</p>
-
-      <div class="barra-acciones">
-        <button class="btn btn--primario" id="btnExportar">📥 Exportar datos</button>
-        <label class="btn" for="btnImportar">📤 Importar datos</label>
-        <input type="file" id="btnImportar" accept=".json" hidden>
-      </div>
-
-      <ul class="lista" id="listaPiezas"></ul>
-
-      <p class="vacio oculto" id="mensajeVacio">
-        Todavía no has añadido ninguna pieza.<br>
-        Pulsa <strong>+ Nueva pieza</strong> para empezar.
-      </p>
+      <div id="listaPiezas"></div>
+      <p id="mensajeSinPiezas" style="text-align: center; color: #999;">Sin piezas aún.</p>
     </main>
 
+    <!-- PIE DE PÁGINA -->
+    <footer class="pie">
+      <p>Los datos se guardan solo en este navegador</p>
+    </footer>
   </div>
 
-
-  <!-- =========================================================
-       VISTA 2 · FICHA DE PIEZA  (lógica en js/detalle.js)
-       ========================================================= -->
-  <div id="vistaDetalle" class="oculto">
+  <!-- VISTA DETALLE -->
+  <div id="vistaDetalle" style="display: none;">
+    <!-- Lógica en js/detalle.js -->
 
     <header class="cabecera">
-      <div class="contenedor cabecera__inner">
-        <h1 class="cabecera__titulo" id="tituloVista">🎼 Nueva pieza</h1>
-        <a class="btn" href="index.html">← Volver a mis piezas</a>
+      <div class="contenedor cabecera_inner">
+        <a href="index.html" class="btn btn-volver">← Volver</a>
+        <h1 class="cabecera_titulo" id="tituloPieza">Pieza</h1>
       </div>
     </header>
 
     <main class="contenedor">
-
-      <!-- Cuadro de tiempo total de la pieza -->
-      <div class="cuadro-tiempo oculto" id="cuadroTiempo">
-        <div class="cuadro-tiempo__contenido">
-          <span class="cuadro-tiempo__label">⏱️ Tiempo total practicado:</span>
-          <span class="cuadro-tiempo__valor" id="tiempoTotalPieza">0h 0m</span>
-        </div>
-      </div>
-
-      <form id="formPieza">
-
-        <!-- ============ 1. ANÁLISIS PREVIO ============ -->
-        <section class="tarjeta">
-          <div class="tarjeta__cabecera">
-            <h2 class="tarjeta__titulo">1 · Antes de empezar</h2>
-            <p class="tarjeta__ayuda">Observa la partitura antes de tocar nada.</p>
-          </div>
-
-          <div class="tarjeta__cuerpo rejilla">
-
-            <div class="campo">
-              <label for="titulo">Título *</label>
-              <input class="input" type="text" id="titulo" required placeholder="Für Elise">
-            </div>
-
-            <div class="campo">
-              <label for="compositor">Compositor</label>
-              <input class="input" type="text" id="compositor" placeholder="Ludwig van Beethoven">
-            </div>
-
-            <div class="campo">
-              <label for="tonalidad">Tonalidad</label>
-              <input class="input" type="text" id="tonalidad" placeholder="La menor">
-              <small class="pista">¿Muchos sostenidos o bemoles?</small>
-            </div>
-
-            <div class="campo">
-              <label for="compas">Compás</label>
-              <input class="input" type="text" id="compas" list="compases" placeholder="3/8">
-              <datalist id="compases">
-                <option value="2/4"></option>
-                <option value="3/4"></option>
-                <option value="4/4"></option>
-                <option value="3/8"></option>
-                <option value="6/8"></option>
-                <option value="12/8"></option>
-              </datalist>
-            </div>
-
-            <div class="campo">
-              <label for="extension">Extensión</label>
-              <input class="input" type="number" id="extension" min="1" placeholder="124">
-              <small class="pista">Número de compases.</small>
-            </div>
-
-            <div class="campo">
-              <label for="inicio">Fecha de inicio</label>
-              <input class="input" type="date" id="inicio">
-            </div>
-
-            <div class="campo campo--ancho">
-              <label for="estructura">Estructura</label>
-              <textarea class="input" id="estructura" rows="2"
-                        placeholder="A – B – A. Los cc. 1-8 se repiten al final."></textarea>
-              <small class="pista">¿Hay partes que se repiten?</small>
-            </div>
-
-            <div class="campo campo--ancho">
-              <label for="dificiles">Puntos difíciles</label>
-              <textarea class="input" id="dificiles" rows="2"
-                        placeholder="Pasaje rápido de los cc. 56-60, salto de la izquierda…"></textarea>
-              <small class="pista">Pasajes rápidos, saltos, adornos, cambios de posición.</small>
-            </div>
-
-            <div class="campo campo--ancho">
-              <label for="acompanamiento">Acompañamiento</label>
-              <textarea class="input" id="acompanamiento" rows="2"
-                        placeholder="Bajo de Alberti en toda la sección A."></textarea>
-              <small class="pista">¿Qué patrones hace la mano izquierda?</small>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- ============ 2. FRAGMENTOS ============ -->
-        <section class="tarjeta">
-          <div class="tarjeta__cabecera">
-            <h2 class="tarjeta__titulo">2 · Divide la pieza en fragmentos</h2>
-            <p class="tarjeta__ayuda">Trozos pequeños y manejables: cc. 1-8, «sección A», «el puente»…</p>
-          </div>
-
-          <div class="tarjeta__cuerpo">
-
-            <ul class="fragmentos" id="listaFragmentos"></ul>
-
-            <p class="fragmentos__vacio oculto" id="sinFragmentos">
-              Aún no has dividido la pieza. Añade el primer fragmento abajo.
-            </p>
-
-            <div class="anadir">
-              <input class="input anadir__compases" type="text" id="nuevoCompases"
-                     placeholder="cc. 1-8">
-              <input class="input anadir__nombre" type="text" id="nuevoNombre"
-                     placeholder="Tema principal">
-              <button type="button" class="btn" id="btnAnadirFragmento">+ Añadir</button>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- ============ ACCIONES DE LA PIEZA ============ -->
-        <div class="acciones">
-          <button type="submit" class="btn btn--primario">Guardar pieza</button>
-          <a href="index.html" class="btn">Cancelar</a>
-          <button type="button" class="btn btn--peligro acciones__borrar oculto"
-                  id="btnBorrarPieza">Borrar pieza</button>
+      <div class="tarjeta">
+        <!-- TIEMPO TOTAL -->
+        <div class="tiempo-total-pieza">
+          <span>Tiempo total practicado:</span>
+          <strong id="tiempoTotalPieza">0h 0m 0s</strong>
         </div>
 
-      </form>
-
-
-      <!-- ============ 3. SESIONES DE PRÁCTICA ============ -->
-      <section class="tarjeta">
-        <div class="tarjeta__cabecera">
-          <h2 class="tarjeta__titulo">3 · Sesiones de práctica</h2>
-          <p class="tarjeta__ayuda">Apunta cada día qué has trabajado y cómo ha ido.</p>
+        <!-- PESTAÑAS DE NAVEGACIÓN -->
+        <div class="pestanas">
+          <button class="btn-vista activo" data-vista="analisis">Análisis</button>
+          <button class="btn-vista" data-vista="fragmentos">Fragmentos</button>
+          <button class="btn-vista" data-vista="sesiones">Sesiones</button>
+          <button class="btn-vista" data-vista="informe">Informe</button>
         </div>
 
-        <div class="tarjeta__cuerpo">
+        <!-- VISTA 1: ANÁLISIS PREVIO -->
+        <div id="vistaAnalisis" class="vista-contenido">
+          <section class="tarjeta">
+            <h2>1. ANÁLISIS PREVIO</h2>
+            <form id="formPieza">
+              <div class="tarjeta_cuerpo rejilla">
+                <div>
+                  <label for="pTitulo">Título</label>
+                  <input type="text" id="pTitulo" class="input" required>
+                </div>
+                <div>
+                  <label for="pCompositor">Compositor</label>
+                  <input type="text" id="pCompositor" class="input">
+                </div>
+                <div>
+                  <label for="pTonalidad">Tonalidad</label>
+                  <input type="text" id="pTonalidad" class="input">
+                </div>
+                <div>
+                  <label for="pCompas">Compás</label>
+                  <input type="text" id="pCompas" class="input">
+                </div>
+                <div>
+                  <label for="pExtension">Extensión (nº de compases)</label>
+                  <input type="number" id="pExtension" class="input">
+                </div>
+                <div>
+                  <label for="pFechaInicio">Fecha de inicio</label>
+                  <input type="date" id="pFechaInicio" class="input">
+                </div>
+              </div>
 
-          <!-- Se muestra mientras la pieza no esté guardada -->
-          <p class="fragmentos__vacio" id="sesionesBloqueadas">
-            Guarda primero la pieza para poder apuntar sesiones.
-          </p>
+              <div class="tarjeta_cuerpo">
+                <label for="pEstructura">Estructura</label>
+                <textarea id="pEstructura" class="input"></textarea>
+              </div>
 
-          <!-- Se muestra cuando la pieza ya está guardada -->
-          <div class="oculto" id="zonaSesiones">
+              <div class="tarjeta_cuerpo">
+                <label for="pPuntosDificiles">Puntos difíciles</label>
+                <textarea id="pPuntosDificiles" class="input"></textarea>
+              </div>
 
-            <button type="button" class="btn btn--primario" id="btnNuevaSesion">+ Nueva sesión</button>
+              <div class="tarjeta_cuerpo">
+                <label for="pAcompanamiento">Acompañamiento</label>
+                <textarea id="pAcompanamiento" class="input"></textarea>
+              </div>
 
-            <!-- Formulario de una sesión -->
-            <form class="sesion-form oculto" id="formSesion">
+              <div class="tarjeta_cuerpo">
+                <button type="button" class="btn btn-primario" id="btnGuardarPieza">Guardar cambios</button>
+              </div>
+            </form>
+          </section>
+        </div>
 
-              <h3 class="sesion-form__titulo" id="tituloSesion">Nueva sesión</h3>
+        <!-- VISTA 2: FRAGMENTOS -->
+        <div id="vistaFragmentos" class="vista-contenido" style="display: none;">
+          <section class="tarjeta">
+            <h2>2. FRAGMENTOS</h2>
+            
+            <div class="tarjeta_cuerpo rejilla">
+              <div>
+                <label for="sFNombre">Nombre del fragmento</label>
+                <input type="text" id="sFNombre" class="input" placeholder="ej: Intro, Estrofa A, etc.">
+              </div>
+              <div>
+                <label for="sFCompases">Compases (ej: 1-8)</label>
+                <input type="text" id="sFCompases" class="input" placeholder="ej: 1-8">
+              </div>
+            </div>
 
-              <div class="rejilla">
+            <div class="tarjeta_cuerpo">
+              <button type="button" class="btn btn-primario" data-accion="agregar-fragmento">Agregar fragmento</button>
+            </div>
 
-                <div class="campo">
+            <div id="listaFragmentos" class="lista-fragmentos"></div>
+          </section>
+        </div>
+
+        <!-- VISTA 3: SESIONES DE PRÁCTICA -->
+        <div id="vistaSesiones" class="vista-contenido" style="display: none;">
+          <section class="tarjeta">
+            <h2>3. SESIONES DE PRÁCTICA</h2>
+
+            <!-- TEMPORIZADOR -->
+            <div class="temporizador-contenedor">
+              <div class="temporizador">
+                <div id="tiempoDisplay">0h 0m 0s</div>
+                <div class="temporizador-botones">
+                  <button type="button" class="btn btn-pequeno" data-accion="iniciar-temporizador">Iniciar</button>
+                  <button type="button" class="btn btn-pequeno" data-accion="pausar-temporizador">Pausar</button>
+                  <button type="button" class="btn btn-pequeno" data-accion="detener-temporizador">Detener</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- FORMULARIO SESIÓN -->
+            <form id="formSesion">
+              <div class="tarjeta_cuerpo rejilla">
+                <div>
                   <label for="sFecha">Fecha</label>
-                  <input class="input" type="date" id="sFecha" required>
+                  <input type="date" id="sFecha" class="input" required>
                 </div>
-
-                <div class="campo">
-                  <label for="sFragmento">Estoy trabajando en</label>
-                  <select class="input" id="sFragmento"></select>
+                <div>
+                  <label for="sFragmento">Fragmento</label>
+                  <input type="text" id="sFragmento" class="input" required>
                 </div>
+              </div>
 
-                <div class="campo campo--ancho">
-                  <span class="etiqueta">Progreso</span>
-                  <div class="opciones">
-                    <label class="opcion">
-                      <input type="radio" name="sProgreso" value="proceso" checked> 🔴 En proceso
-                    </label>
-                    <label class="opcion">
-                      <input type="radio" name="sProgreso" value="mejor"> 🟡 Sale mejor
-                    </label>
-                    <label class="opcion">
-                      <input type="radio" name="sProgreso" value="dominado"> 🟢 Dominado
-                    </label>
-                  </div>
+              <div class="tarjeta_cuerpo rejilla">
+                <div>
+                  <label for="sProgreso">Progreso</label>
+                  <input type="text" id="sProgreso" class="input" placeholder="ej: Mejor, Igual, Peor">
                 </div>
-
-                <div class="campo">
-                  <label for="sEnfoque">Hoy me centro en</label>
-                  <select class="input" id="sEnfoque">
-                    <option value="">— Elige una opción —</option>
-                    <option value="Coordinación de manos">Coordinación de manos</option>
-                    <option value="Pulso estable">Pulso estable</option>
-                    <option value="No correr">No correr</option>
-                    <option value="Frases">Frases</option>
-                    <option value="Cambios de posición">Cambios de posición</option>
-                    <option value="Tensiones">Tensiones</option>
-                    <option value="otro">Otro…</option>
+                <div>
+                  <label for="sEnfoque">Enfoque</label>
+                  <select id="sEnfoque" class="input">
+                    <option value="">Selecciona un enfoque</option>
+                    <option value="Técnica">Técnica</option>
+                    <option value="Musicalidad">Musicalidad</option>
+                    <option value="Velocidad">Velocidad</option>
+                    <option value="Memoria">Memoria</option>
+                    <option value="Interpretación">Interpretación</option>
+                    <option value="Otro">Otro</option>
                   </select>
                 </div>
+              </div>
 
-                <div class="campo oculto" id="campoEnfoqueOtro">
-                  <label for="sEnfoqueOtro">¿En qué te centras?</label>
-                  <input class="input" type="text" id="sEnfoqueOtro" placeholder="Escríbelo aquí">
-                </div>
+              <div id="otroEnfoqueDiv" class="tarjeta_cuerpo" style="display: none;">
+                <label for="sOtroEnfoque">Especifica el enfoque</label>
+                <input type="text" id="sOtroEnfoque" class="input">
+              </div>
 
-                <div class="campo campo--ancho">
-                  <span class="etiqueta">Cómo me he sentido
-                    <small class="pista">(puedes marcar varias)</small>
-                  </span>
-                  <div class="opciones">
-                    <label class="opcion">
-                      <input type="checkbox" name="sSentir" value="Me apetece"> Me apetece
-                    </label>
-                    <label class="opcion">
-                      <input type="checkbox" name="sSentir" value="Me cuesta empezar"> Me cuesta empezar
-                    </label>
-                    <label class="opcion">
-                      <input type="checkbox" name="sSentir" value="Disfruto"> Disfruto
-                    </label>
-                    <label class="opcion">
-                      <input type="checkbox" name="sSentir" value="Me frustra"> Me frustra
-                    </label>
-                    <label class="opcion">
-                      <input type="checkbox" name="sSentir" value="Noto mejora"> Noto mejora
-                    </label>
-                  </div>
-                </div>
-
-                <div class="campo campo--ancho">
-                  <label class="opcion opcion--sola">
-                    <input type="checkbox" id="sGrabado"> 🎙️ Me he grabado
+              <div class="tarjeta_cuerpo">
+                <label>Sentimientos durante la práctica</label>
+                <div class="checkbox-grupo">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="sentimientos" value="Frustración">
+                    Frustración
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="sentimientos" value="Satisfacción">
+                    Satisfacción
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="sentimientos" value="Cansancio">
+                    Cansancio
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="sentimientos" value="Motivación">
+                    Motivación
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="sentimientos" value="Aburrimiento">
+                    Aburrimiento
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="sentimientos" value="Alegría">
+                    Alegría
                   </label>
                 </div>
-
-                <!-- Temporizador -->
-                <div class="campo campo--ancho">
-                  <span class="etiqueta">⏱️ Temporizador</span>
-                  <div class="temporizador">
-                    <div class="temporizador__display" id="tiempoDisplay">0h 0m</div>
-                    <div class="temporizador__botones">
-                      <button type="button" class="btn btn--mini" id="btnIniciar">Iniciar</button>
-                      <button type="button" class="btn btn--mini oculto" id="btnPausar">Pausar</button>
-                      <button type="button" class="btn btn--mini btn--peligro oculto" id="btnDetener">Detener</button>
-                    </div>
-                  </div>
-                  <input type="hidden" id="sTiempo" value="0">
-                </div>
-
-                <div class="campo campo--ancho">
-                  <label for="sNotas">Notas</label>
-                  <textarea class="input" id="sNotas" rows="2"
-                            placeholder="Qué ha salido bien, qué hay que repasar mañana…"></textarea>
-                </div>
-
               </div>
 
-              <div class="acciones">
-                <button type="submit" class="btn btn--primario">Guardar sesión</button>
-                <button type="button" class="btn" id="btnCancelarSesion">Cancelar</button>
+              <div class="tarjeta_cuerpo rejilla">
+                <div>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="sGrabado">
+                    ¿Grabaste esta sesión?
+                  </label>
+                </div>
               </div>
 
+              <div class="tarjeta_cuerpo">
+                <label for="sNotas">Notas</label>
+                <textarea id="sNotas" class="input" placeholder="Notas sobre esta sesión..."></textarea>
+              </div>
+
+              <div class="tarjeta_cuerpo">
+                <button type="button" class="btn btn-primario" data-accion="guardar-sesion">Guardar sesión</button>
+              </div>
             </form>
 
-            <!-- Historial de sesiones -->
-            <ul class="sesiones" id="listaSesiones"></ul>
-
-            <p class="fragmentos__vacio oculto" id="sinSesiones">
-              Todavía no has apuntado ninguna sesión.
-            </p>
-
-          </div>
-
+            <!-- HISTORIAL DE SESIONES -->
+            <h3>Historial de sesiones</h3>
+            <div id="listaSesiones" class="lista-sesiones"></div>
+          </section>
         </div>
-      </section>
 
+        <!-- VISTA 4: INFORME -->
+        <div id="vistaInforme" class="vista-contenido" style="display: none;">
+          <section class="tarjeta">
+            <h2>4. INFORME DE PRÁCTICA</h2>
+
+            <div class="tarjeta_cuerpo">
+              <button type="button" class="btn btn-primario" data-accion="descargar-pdf">Descargar como PDF</button>
+            </div>
+
+            <div id="contenidoInforme">
+              <!-- RESUMEN -->
+              <div id="resumenInforme"></div>
+
+              <!-- TABLA -->
+              <div id="tablaInforme"></div>
+
+              <!-- GRÁFICOS -->
+              <div id="graficosInforme"></div>
+            </div>
+          </section>
+        </div>
+
+      </div>
     </main>
 
+    <!-- PIE DE PÁGINA -->
+    <footer class="pie">
+      <p>Los datos se guardan solo en este navegador</p>
+    </footer>
   </div>
 
-
-  <footer class="pie contenedor">
-    <small>Los datos se guardan solo en este navegador.</small>
-  </footer>
-
+  <!-- SCRIPTS -->
   <script src="js/app.js"></script>
   <script src="js/index.js"></script>
   <script src="js/detalle.js"></script>
+  <script src="js/informe.js"></script>
 </body>
 </html>

@@ -1,367 +1,366 @@
-'use strict';
+// detalle.js - Lógica de la ficha de pieza individual
 
-(function() {
-  if (Util.vista() !== 'detalle') return;
+let idPiezaActual = null;
+let timerInterval = null;
+let tiempoTranscurrido = 0;
 
-  const el = function(id) { return document.getElementById(id); };
-  el('vistaDetalle').classList.remove('oculto');
+document.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  idPiezaActual = params.get('id');
 
-  const CAMPOS = ['titulo', 'compositor', 'tonalidad', 'compas', 'extension', 'inicio', 'estructura', 'dificiles', 'acompanamiento'];
-  const PROGRESO = { proceso: '🔴 En proceso', mejor: '🟡 Sale mejor', dominado: '🟢 Dominado' };
-
-  const idPieza = Util.parametro('id');
-  let pieza = null;
-  let fragmentos = [];
-
-  function formatearTiempo(segundos) {
-    const horas = Math.floor(segundos / 3600);
-    const minutos = Math.floor((segundos % 3600) / 60);
-    const segs = segundos % 60;
-    return horas + 'h ' + minutos + 'm ' + segs + 's';
+  if (!idPiezaActual) {
+    console.error('No se encontró ID de pieza');
+    return;
   }
 
-  function pintarFragmentos() {
-    el('sinFragmentos').classList.toggle('oculto', fragmentos.length > 0);
-    let html = '';
-    for (let i = 0; i < fragmentos.length; i++) {
-      const f = fragmentos[i];
-      html += '<li class="fragmento"><span class="fragmento__compases">' + Util.escapar(f.compases || '—') + '</span><span class="fragmento__nombre">' + Util.escapar(f.nombre) + '</span><button type="button" class="btn btn--mini btn--peligro" data-quitar="' + Util.escapar(f.id) + '">Quitar</button></li>';
-    }
-    el('listaFragmentos').innerHTML = html;
-  }
+  await cargarPieza();
+  await cargarSesiones();
+  await cargarDatosInforme(); // Cargar informe
+  configurarEventos();
+});
 
-  function anadirFragmento() {
-    const compases = el('nuevoCompases').value.trim();
-    const nombre = el('nuevoNombre').value.trim();
-    if (!compases && !nombre) {
-      el('nuevoCompases').focus();
-      return;
-    }
-    fragmentos.push({ id: Store.uid(), compases: compases, nombre: nombre });
-    el('nuevoCompases').value = '';
-    el('nuevoNombre').value = '';
-    el('nuevoCompases').focus();
-    pintarFragmentos();
-  }
-
-  el('btnAnadirFragmento').addEventListener('click', anadirFragmento);
-
-  el('nuevoCompases').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      anadirFragmento();
-    }
-  });
-
-  el('nuevoNombre').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      anadirFragmento();
-    }
-  });
-
-  el('listaFragmentos').addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-quitar]');
-    if (!btn) return;
-    const id = btn.getAttribute('data-quitar');
-    const nuevos = [];
-    for (let i = 0; i < fragmentos.length; i++) {
-      if (fragmentos[i].id !== id) {
-        nuevos.push(fragmentos[i]);
-      }
-    }
-    fragmentos = nuevos;
-    pintarFragmentos();
-  });
-
-  function cargarPieza() {
-    return (async function() {
-      try {
-        if (idPieza) {
-          pieza = await Store.obtener(idPieza);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error al abrir la base de datos');
-        return;
-      }
-
-      if (idPieza && !pieza) {
-        alert('Esa pieza ya no existe');
-        location.replace('index.html');
-        return;
-      }
-
-      if (pieza) {
-        fragmentos = pieza.fragmentos ? pieza.fragmentos.slice() : [];
-        document.title = Util.escapar(pieza.titulo || 'Sin título') + ' · Guía de práctica';
-        for (let i = 0; i < CAMPOS.length; i++) {
-          const input = el(CAMPOS[i]);
-          if (input && pieza[CAMPOS[i]]) {
-            input.value = pieza[CAMPOS[i]];
-          }
-        }
-        pintarFragmentos();
-        el('btnBorrarPieza').classList.remove('oculto');
-        el('sesionesBloqueadas').classList.add('oculto');
-        el('zonaSesiones').classList.remove('oculto');
-      } else {
-        document.title = 'Nueva pieza · Guía de práctica';
-        el('inicio').value = Util.hoy();
-        el('sesionesBloqueadas').classList.remove('oculto');
-        el('zonaSesiones').classList.add('oculto');
-      }
-
-      inicializarTemporizador();
-      await mostrarTiempoTotal();
-      await mostrarHistorial();
-    })();
-  }
-
-  let tiempoSesionActual = 0;
-  let intervalo = null;
-
-  function actualizarDisplay() {
-    el('tiempoDisplay').textContent = formatearTiempo(tiempoSesionActual);
-  }
-
-  function inicializarTemporizador() {
-    el('btnIniciar').addEventListener('click', function() {
-      if (intervalo) return;
-      el('btnIniciar').classList.add('oculto');
-      el('btnPausar').classList.remove('oculto');
-      el('btnDetener').classList.remove('oculto');
-      intervalo = setInterval(function() {
-        tiempoSesionActual++;
-        actualizarDisplay();
-      }, 1000);
-    });
-
-    el('btnPausar').addEventListener('click', function() {
-      if (intervalo) {
-        clearInterval(intervalo);
-        intervalo = null;
-      }
-      el('btnPausar').classList.add('oculto');
-      el('btnIniciar').classList.remove('oculto');
-    });
-
-    el('btnDetener').addEventListener('click', function() {
-      if (intervalo) {
-        clearInterval(intervalo);
-        intervalo = null;
-      }
-      el('btnDetener').classList.add('oculto');
-      el('btnIniciar').classList.remove('oculto');
-      el('btnPausar').classList.add('oculto');
-    });
-
-    actualizarDisplay();
-  }
-
-  async function mostrarTiempoTotal() {
+async function cargarPieza() {
+  try {
+    const pieza = await obtenerPiezaDB(idPiezaActual);
     if (!pieza) {
-      el('cuadroTiempo').classList.add('oculto');
+      console.error('Pieza no encontrada');
       return;
     }
-    try {
-      const sesiones = await Sesiones.dePieza(pieza.id);
-      let tiempoTotal = 0;
-      for (let i = 0; i < sesiones.length; i++) {
-        tiempoTotal += sesiones[i].tiempo || 0;
-      }
-      el('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
-      el('cuadroTiempo').classList.remove('oculto');
-    } catch (err) {
-      el('cuadroTiempo').classList.add('oculto');
-    }
+
+    // Llenar formulario
+    document.getElementById('pTitulo').value = pieza.titulo || '';
+    document.getElementById('pCompositor').value = pieza.compositor || '';
+    document.getElementById('pTonalidad').value = pieza.tonalidad || '';
+    document.getElementById('pCompas').value = pieza.compas || '';
+    document.getElementById('pExtension').value = pieza.extension || '';
+    document.getElementById('pFechaInicio').value = pieza.fechaInicio || '';
+    document.getElementById('pEstructura').value = pieza.estructura || '';
+    document.getElementById('pPuntosDificiles').value = pieza.puntosDificiles || '';
+    document.getElementById('pAcompanamiento').value = pieza.acompanamiento || '';
+
+    // Mostrar tiempo total
+    const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
+    document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
+
+    // Cargar fragmentos
+    await cargarFragmentos(pieza.fragmentos || []);
+
+  } catch (error) {
+    console.error('Error al cargar pieza:', error);
+  }
+}
+
+async function cargarFragmentos(fragmentos) {
+  const lista = document.getElementById('listaFragmentos');
+  lista.innerHTML = '';
+
+  if (fragmentos.length === 0) {
+    lista.innerHTML = '<p style="color: #999;">Sin fragmentos aún.</p>';
+    return;
   }
 
-  async function mostrarHistorial() {
-    if (!pieza) return;
-    try {
-      const sesiones = await Sesiones.dePieza(pieza.id);
-      if (sesiones.length === 0) {
-        el('sinSesiones').classList.remove('oculto');
-        el('listaSesiones').innerHTML = '';
-        return;
-      }
-      el('sinSesiones').classList.add('oculto');
-      let html = '';
-      for (let i = 0; i < sesiones.length; i++) {
-        const s = sesiones[i];
-        let frag = null;
-        for (let j = 0; j < fragmentos.length; j++) {
-          if (fragmentos[j].id === s.fragmentoId) {
-            frag = fragmentos[j];
-            break;
-          }
-        }
-        const nombreFragmento = frag ? Util.escapar(frag.nombre || frag.compases) : 'Fragmento eliminado';
-        const progreso = PROGRESO[s.progreso] || '?';
-        const tiempoSesion = formatearTiempo(s.tiempo || 0);
-        html += '<li class="sesion"><div class="sesion__cabecera"><strong>' + Util.escapar(s.fecha || '?') + '</strong> — ' + nombreFragmento + '</div><div class="sesion__detalles"><span>' + progreso + '</span><span>Enfoque: ' + Util.escapar(s.enfoque || '—') + '</span><span>Sentimiento: ' + Util.escapar(s.sentimiento || '—') + '</span><span>Tiempo: ' + tiempoSesion + '</span>' + (s.grabacion ? '<span>Grabado</span>' : '') + (s.notas ? '<span>Notas: ' + Util.escapar(s.notas) + '</span>' : '') + '</div><button type="button" class="btn btn--mini btn--peligro" data-borrar-sesion="' + Util.escapar(s.id) + '">Borrar sesión</button></li>';
-      }
-      el('listaSesiones').innerHTML = html;
-      
-      el('listaSesiones').addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-borrar-sesion]');
-        if (!btn) return;
-        const sesionId = btn.getAttribute('data-borrar-sesion');
-        if (!confirm('¿Borrar esta sesión?')) return;
-        (async function() {
-          try {
-            await Sesiones.borrar(sesionId);
-            Util.aviso('Sesión borrada');
-            await mostrarHistorial();
-            await mostrarTiempoTotal();
-          } catch (err) {
-            console.error(err);
-            Util.aviso('No se ha podido borrar la sesión', 'error');
-          }
-        })();
+  fragmentos.forEach((frag, index) => {
+    const div = document.createElement('div');
+    div.className = 'fragmento-item';
+    div.innerHTML = `
+      <div class="fragmento-header">
+        <strong>${frag.nombre}</strong>
+        <span class="fragmento-compases">${frag.compases || '?'}</span>
+      </div>
+      <button type="button" class="btn-eliminar-fragmento" data-index="${index}">Eliminar</button>
+    `;
+    lista.appendChild(div);
+  });
+
+  // Event listeners para eliminar fragmentos
+  document.querySelectorAll('.btn-eliminar-fragmento').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const index = parseInt(e.target.dataset.index);
+      await eliminarFragmento(index);
+    });
+  });
+}
+
+async function agregarFragmento() {
+  const nombre = document.getElementById('sFNombre').value.trim();
+  const compases = document.getElementById('sFCompases').value.trim();
+
+  if (!nombre || !compases) {
+    alert('Por favor rellena nombre y compases del fragmento');
+    return;
+  }
+
+  try {
+    const pieza = await obtenerPiezaDB(idPiezaActual);
+    if (!pieza.fragmentos) pieza.fragmentos = [];
+
+    pieza.fragmentos.push({ nombre, compases });
+    await guardarPiezaDB(pieza);
+
+    document.getElementById('sFNombre').value = '';
+    document.getElementById('sFCompases').value = '';
+
+    await cargarFragmentos(pieza.fragmentos);
+  } catch (error) {
+    console.error('Error al agregar fragmento:', error);
+  }
+}
+
+async function eliminarFragmento(index) {
+  if (!confirm('¿Eliminar este fragmento?')) return;
+
+  try {
+    const pieza = await obtenerPiezaDB(idPiezaActual);
+    pieza.fragmentos.splice(index, 1);
+    await guardarPiezaDB(pieza);
+    await cargarFragmentos(pieza.fragmentos);
+  } catch (error) {
+    console.error('Error al eliminar fragmento:', error);
+  }
+}
+
+async function cargarSesiones() {
+  try {
+    const sesiones = await obtenerSesionesDB();
+    const sesionesFiltradasOrdenadas = sesiones
+      .filter(s => s.pieceId === idPiezaActual)
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    const lista = document.getElementById('listaSesiones');
+    lista.innerHTML = '';
+
+    if (sesionesFiltradasOrdenadas.length === 0) {
+      lista.innerHTML = '<p style="color: #999;">Sin sesiones aún.</p>';
+      return;
+    }
+
+    sesionesFiltradasOrdenadas.forEach((sesion, index) => {
+      const fecha = new Date(sesion.fecha).toLocaleDateString('es-ES');
+      const tiempo = formatearTiempo(sesion.tiempo);
+      const sentimientos = (sesion.sentimientos && sesion.sentimientos.length > 0)
+        ? sesion.sentimientos.join(', ')
+        : 'Sin sentimientos';
+
+      const div = document.createElement('div');
+      div.className = 'sesion-item';
+      div.innerHTML = `
+        <div class="sesion-header">
+          <strong>${fecha}</strong>
+          <span class="sesion-tiempo">${tiempo}</span>
+        </div>
+        <div class="sesion-detalle">
+          <p><strong>Fragmento:</strong> ${sesion.fragmento}</p>
+          <p><strong>Progreso:</strong> ${sesion.progreso || '-'}</p>
+          <p><strong>Enfoque:</strong> ${sesion.enfoque || '-'}</p>
+          <p><strong>Sentimientos:</strong> ${sentimientos}</p>
+          <p><strong>Grabación:</strong> ${sesion.grabado ? 'Sí' : 'No'}</p>
+          ${sesion.notas ? `<p><strong>Notas:</strong> ${sesion.notas}</p>` : ''}
+        </div>
+        <button type="button" class="btn-eliminar-sesion" data-index="${index}">Eliminar sesión</button>
+      `;
+      lista.appendChild(div);
+    });
+
+    // Event listeners para eliminar sesiones
+    document.querySelectorAll('.btn-eliminar-sesion').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const index = parseInt(e.target.dataset.index);
+        await eliminarSesion(sesionesFiltradasOrdenadas[index].id);
       });
-    } catch (err) {
-      console.error(err);
-    }
+    });
+
+  } catch (error) {
+    console.error('Error al cargar sesiones:', error);
+  }
+}
+
+async function eliminarSesion(sesionId) {
+  if (!confirm('¿Eliminar esta sesión?')) return;
+
+  try {
+    await eliminarSesionDB(sesionId);
+    await cargarSesiones();
+    
+    // Actualizar tiempo total
+    const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
+    document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
+  } catch (error) {
+    console.error('Error al eliminar sesión:', error);
+  }
+}
+
+async function guardarSesion() {
+  const fecha = document.getElementById('sFecha').value;
+  const fragmento = document.getElementById('sFragmento').value;
+  const progreso = document.getElementById('sProgreso').value;
+  const enfoque = document.getElementById('sEnfoque').value;
+  const otroEnfoque = document.getElementById('sOtroEnfoque').value;
+  const sentimientos = Array.from(document.querySelectorAll('input[name="sentimientos"]:checked'))
+    .map(cb => cb.value);
+  const grabado = document.getElementById('sGrabado').checked;
+  const notas = document.getElementById('sNotas').value;
+
+  if (!fecha || !fragmento) {
+    alert('Por favor rellena fecha y fragmento');
+    return;
   }
 
-  const form = el('formPieza');
-  const btnGuardar = form.querySelector('button[type="submit"]');
+  const enfoqueGuardar = enfoque === 'Otro' ? otroEnfoque : enfoque;
 
-  btnGuardar.addEventListener('click', function(e) {
-    e.preventDefault();
-    (async function() {
-      try {
-        const datos = { fragmentos: fragmentos };
-        for (let i = 0; i < CAMPOS.length; i++) {
-          const input = el(CAMPOS[i]);
-          if (input) {
-            datos[CAMPOS[i]] = input.value.trim();
-          }
-        }
-        if (!datos.titulo) {
-          alert('Debes poner un título');
-          el('titulo').focus();
-          return;
-        }
-        if (pieza) {
-          datos.id = pieza.id;
-        }
-        pieza = await Store.guardar(datos);
-        el('btnBorrarPieza').classList.remove('oculto');
-        el('sesionesBloqueadas').classList.add('oculto');
-        el('zonaSesiones').classList.remove('oculto');
-        await mostrarTiempoTotal();
-        Util.aviso('Pieza guardada');
-      } catch (err) {
-        console.error(err);
-        Util.aviso('No se ha podido guardar', 'error');
-      }
-    })();
+  try {
+    const sesion = {
+      id: Date.now().toString(),
+      pieceId: idPiezaActual,
+      fecha,
+      fragmento,
+      progreso,
+      enfoque: enfoqueGuardar,
+      sentimientos,
+      grabado,
+      notas,
+      tiempo: tiempoTranscurrido
+    };
+
+    await guardarSesionDB(sesion);
+
+    // Reiniciar temporizador
+    detenerTemporizador();
+    tiempoTranscurrido = 0;
+    document.getElementById('tiempoDisplay').textContent = '0h 0m 0s';
+
+    // Limpiar formulario
+    document.getElementById('sFecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('sFragmento').value = '';
+    document.getElementById('sProgreso').value = '';
+    document.getElementById('sEnfoque').value = '';
+    document.getElementById('sOtroEnfoque').value = '';
+    document.getElementById('sGrabado').checked = false;
+    document.getElementById('sNotas').value = '';
+    document.querySelectorAll('input[name="sentimientos"]').forEach(cb => cb.checked = false);
+
+    // Actualizar listas
+    await cargarSesiones();
+    await cargarDatosInforme(); // Actualizar informe
+
+    // Actualizar tiempo total
+    const tiempoTotal = await calcularTiempoTotal(idPiezaActual);
+    document.getElementById('tiempoTotalPieza').textContent = formatearTiempo(tiempoTotal);
+
+    alert('Sesión guardada correctamente');
+
+  } catch (error) {
+    console.error('Error al guardar sesión:', error);
+    alert('Error al guardar sesión');
+  }
+}
+
+function iniciarTemporizador() {
+  if (timerInterval) return;
+
+  timerInterval = setInterval(() => {
+    tiempoTranscurrido++;
+    document.getElementById('tiempoDisplay').textContent = formatearTiempo(tiempoTranscurrido);
+  }, 1000);
+}
+
+function pausarTemporizador() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function detenerTemporizador() {
+  pausarTemporizador();
+  tiempoTranscurrido = 0;
+  document.getElementById('tiempoDisplay').textContent = '0h 0m 0s';
+}
+
+function formatearTiempo(segundos) {
+  if (!segundos || segundos === 0) return '0h 0m 0s';
+  
+  const horas = Math.floor(segundos / 3600);
+  const minutos = Math.floor((segundos % 3600) / 60);
+  const segs = segundos % 60;
+  
+  return `${horas}h ${minutos}m ${segs}s`;
+}
+
+async function calcularTiempoTotal(pieceId) {
+  const sesiones = await obtenerSesionesDB();
+  const sesionesFiltradasOrdenadas = sesiones.filter(s => s.pieceId === pieceId);
+  return sesionesFiltradasOrdenadas.reduce((sum, s) => sum + (s.tiempo || 0), 0);
+}
+
+function cambiarVista(vista) {
+  // Ocultar todas las vistas
+  document.getElementById('vistaAnalisis').style.display = 'none';
+  document.getElementById('vistaFragmentos').style.display = 'none';
+  document.getElementById('vistaSesiones').style.display = 'none';
+  document.getElementById('vistaInforme').style.display = 'none';
+
+  // Desactivar todos los botones
+  document.querySelectorAll('.btn-vista').forEach(btn => btn.classList.remove('activo'));
+
+  // Mostrar vista seleccionada
+  if (vista === 'analisis') {
+    document.getElementById('vistaAnalisis').style.display = 'block';
+    document.querySelector('[data-vista="analisis"]').classList.add('activo');
+  } else if (vista === 'fragmentos') {
+    document.getElementById('vistaFragmentos').style.display = 'block';
+    document.querySelector('[data-vista="fragmentos"]').classList.add('activo');
+  } else if (vista === 'sesiones') {
+    document.getElementById('vistaSesiones').style.display = 'block';
+    document.querySelector('[data-vista="sesiones"]').classList.add('activo');
+  } else if (vista === 'informe') {
+    document.getElementById('vistaInforme').style.display = 'block';
+    document.querySelector('[data-vista="informe"]').classList.add('activo');
+  }
+}
+
+function configurarEventos() {
+  // Botones de vista
+  document.querySelectorAll('.btn-vista').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const vista = btn.dataset.vista;
+      cambiarVista(vista);
+    });
   });
 
-  el('btnBorrarPieza').addEventListener('click', function(e) {
-    e.preventDefault();
-    if (!pieza) {
-      alert('No hay pieza que borrar');
-      return;
-    }
-    if (!confirm('¿Borrar esta pieza?')) {
-      return;
-    }
-    (async function() {
-      try {
-        await Store.borrar(pieza.id);
-        Util.aviso('Pieza borrada');
-        setTimeout(function() {
-          location.replace('index.html');
-        }, 1500);
-      } catch (err) {
-        console.error(err);
-        Util.aviso('No se ha podido borrar', 'error');
-      }
-    })();
+  // Botón agregar fragmento
+  const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
+  if (btnAgregarFragmento) {
+    btnAgregarFragmento.addEventListener('click', agregarFragmento);
+  }
+
+  // Botones temporizador
+  const btnIniciar = document.querySelector('[data-accion="iniciar-temporizador"]');
+  const btnPausar = document.querySelector('[data-accion="pausar-temporizador"]');
+  const btnDetener = document.querySelector('[data-accion="detener-temporizador"]');
+  const btnGuardarSesion = document.querySelector('[data-accion="guardar-sesion"]');
+  const btnDescargarPDF = document.querySelector('[data-accion="descargar-pdf"]');
+
+  if (btnIniciar) btnIniciar.addEventListener('click', iniciarTemporizador);
+  if (btnPausar) btnPausar.addEventListener('click', pausarTemporizador);
+  if (btnDetener) btnDetener.addEventListener('click', detenerTemporizador);
+  if (btnGuardarSesion) btnGuardarSesion.addEventListener('click', guardarSesion);
+  if (btnDescargarPDF) btnDescargarPDF.addEventListener('click', () => {
+    const nombrePieza = document.getElementById('pTitulo').value || 'Pieza';
+    descargarPDFInforme(nombrePieza);
   });
 
-  const formSesion = el('formSesion');
+  // Fecha automática
+  const inputFecha = document.getElementById('sFecha');
+  if (inputFecha && !inputFecha.value) {
+    inputFecha.value = new Date().toISOString().split('T')[0];
+  }
 
-  el('btnNuevaSesion').addEventListener('click', function() {
-    formSesion.classList.remove('oculto');
-    el('sFecha').value = Util.hoy();
-    let html = '<option value="">— Elige fragmento —</option>';
-    for (let i = 0; i < fragmentos.length; i++) {
-      const f = fragmentos[i];
-      html += '<option value="' + Util.escapar(f.id) + '">' + Util.escapar(f.nombre || f.compases || 'Sin nombre') + '</option>';
-    }
-    el('sFragmento').innerHTML = html;
-  });
-
-  el('btnCancelarSesion').addEventListener('click', function() {
-    formSesion.classList.add('oculto');
-    formSesion.reset();
-    tiempoSesionActual = 0;
-    actualizarDisplay();
-  });
-
-  el('sEnfoque').addEventListener('change', function() {
-    el('campoEnfoqueOtro').classList.toggle('oculto', this.value !== 'otro');
-  });
-
-  const btnGuardarSesion = formSesion.querySelector('button[type="submit"]');
-
-  btnGuardarSesion.addEventListener('click', function(e) {
-    e.preventDefault();
-    (async function() {
-      if (!pieza) {
-        alert('Guarda la pieza primero');
-        return;
-      }
-      const fragmentoId = el('sFragmento').value;
-      if (!fragmentoId) {
-        alert('Elige un fragmento');
-        return;
-      }
-      try {
-        const progreso = document.querySelector('input[name="sProgreso"]:checked').value;
-        const sentimientos = [];
-        const checkboxes = document.querySelectorAll('input[name="sSentir"]:checked');
-        for (let i = 0; i < checkboxes.length; i++) {
-          sentimientos.push(checkboxes[i].value);
-        }
-        let enfoque = el('sEnfoque').value;
-        if (enfoque === 'otro') {
-          enfoque = el('sEnfoqueOtro').value.trim();
-        }
-        const sesion = {
-          piezaId: pieza.id,
-          fragmentoId: fragmentoId,
-          fecha: el('sFecha').value || Util.hoy(),
-          progreso: progreso,
-          enfoque: enfoque,
-          sentimiento: sentimientos.join(', '),
-          grabacion: el('sGrabado').checked,
-          notas: el('sNotas').value.trim(),
-          tiempo: tiempoSesionActual
-        };
-        await Sesiones.guardar(sesion);
-        formSesion.classList.add('oculto');
-        formSesion.reset();
-        el('sFecha').value = Util.hoy();
-        tiempoSesionActual = 0;
-        actualizarDisplay();
-        el('btnIniciar').classList.remove('oculto');
-        el('btnPausar').classList.add('oculto');
-        el('btnDetener').classList.add('oculto');
-        await mostrarHistorial();
-        await mostrarTiempoTotal();
-        Util.aviso('Sesión guardada');
-      } catch (err) {
-        console.error(err);
-        Util.aviso('No se ha podido guardar la sesión', 'error');
-      }
-    })();
-  });
-
-  cargarPieza();
-})();
+  // Cambiar campo de enfoque
+  const selectEnfoque = document.getElementById('sEnfoque');
+  const otroEnfoqueDiv = document.getElementById('otroEnfoqueDiv');
+  if (selectEnfoque && otroEnfoqueDiv) {
+    selectEnfoque.addEventListener('change', () => {
+      otroEnfoqueDiv.style.display = selectEnfoque.value === 'Otro' ? 'block' : 'none';
+    });
+  }
+}
