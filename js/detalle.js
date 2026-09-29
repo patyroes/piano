@@ -32,6 +32,17 @@ function inicializarNuevaPieza() {
   if (tiempoTotal) {
     tiempoTotal.textContent = 'Tiempo total practicado: 0h 0m';
   }
+
+  // Limpiar fragmentos y sesiones
+  const listaFragmentos = document.getElementById('listaFragmentos');
+  if (listaFragmentos) {
+    listaFragmentos.innerHTML = '<p>No hay fragmentos agregados</p>';
+  }
+
+  const historial = document.getElementById('historial');
+  if (historial) {
+    historial.innerHTML = '<p>No hay sesiones registradas</p>';
+  }
 }
 
 // ===== CARGAR PIEZA EXISTENTE =====
@@ -57,17 +68,30 @@ async function cargarPieza(piezaId) {
     document.getElementById('pPuntosDificiles').value = pieza.puntosDificiles || '';
     document.getElementById('pAcompanamiento').value = pieza.acompanamiento || '';
 
-    // Cargar fragmentos en el desplegable
+    // Guardar piezaId en variable global para usar en otras funciones
+    window.piezaIdActual = piezaId;
+
+    // Cargar fragmentos en el desplegable y lista
     cargarFragmentosEnSelect(db, piezaId);
+    mostrarListaFragmentos(db, piezaId);
 
     // Mostrar tiempo total
     actualizarTiempoTotal(db, piezaId);
 
-    // Guardar piezaId en variable global para usar en otras funciones
-    window.piezaIdActual = piezaId;
-
     // Cargar historial de sesiones
     mostrarHistorial(piezaId);
+
+    // Configurar evento guardar pieza
+    const btnGuardarPieza = document.getElementById('btnGuardarPieza');
+    if (btnGuardarPieza) {
+      btnGuardarPieza.addEventListener('click', guardarPieza);
+    }
+
+    // Configurar evento agregar fragmento
+    const btnAgregarFragmento = document.querySelector('[data-accion="agregar-fragmento"]');
+    if (btnAgregarFragmento) {
+      btnAgregarFragmento.addEventListener('click', agregarFragmento);
+    }
 
   } catch (error) {
     console.error('Error al cargar pieza:', error);
@@ -101,10 +125,41 @@ async function cargarFragmentosEnSelect(db, piezaId) {
   }
 }
 
+// ===== MOSTRAR LISTA DE FRAGMENTOS =====
+async function mostrarListaFragmentos(db, piezaId) {
+  try {
+    const fragmentos = await obtenerFragmentos(db, piezaId);
+    const listaDiv = document.getElementById('listaFragmentos');
+
+    if (!listaDiv) return;
+
+    if (fragmentos.length === 0) {
+      listaDiv.innerHTML = '<p>No hay fragmentos agregados</p>';
+      return;
+    }
+
+    let html = '<ul>';
+    fragmentos.forEach(fragmento => {
+      html += `
+        <li>
+          <strong>${fragmento.nombre}</strong> (cc. ${fragmento.compases})
+          <button onclick="borrarFragmento('${fragmento.id}', '${piezaId}')" class="btn-eliminar">Borrar</button>
+        </li>
+      `;
+    });
+    html += '</ul>';
+
+    listaDiv.innerHTML = html;
+
+  } catch (error) {
+    console.error('Error al mostrar lista de fragmentos:', error);
+  }
+}
+
 // ===== AGREGAR FRAGMENTO =====
 async function agregarFragmento() {
-  const nombreFragmento = document.getElementById('sNombreFragmento').value.trim();
-  const compasesFragmento = document.getElementById('sCompasesFragmento').value.trim();
+  const nombreFragmento = document.getElementById('sFNombre').value.trim();
+  const compasesFragmento = document.getElementById('sFCompases').value.trim();
 
   if (!nombreFragmento || !compasesFragmento) {
     alert('Por favor completa nombre y compases del fragmento');
@@ -114,6 +169,11 @@ async function agregarFragmento() {
   try {
     const db = await abrirDB();
     const piezaId = window.piezaIdActual;
+
+    if (!piezaId) {
+      alert('Debes tener una pieza cargada');
+      return;
+    }
 
     const fragmento = {
       id: Date.now().toString(),
@@ -127,11 +187,12 @@ async function agregarFragmento() {
     await tx.done;
 
     // Limpiar inputs
-    document.getElementById('sNombreFragmento').value = '';
-    document.getElementById('sCompasesFragmento').value = '';
+    document.getElementById('sFNombre').value = '';
+    document.getElementById('sFCompases').value = '';
 
-    // Recargar select
+    // Recargar select y lista
     cargarFragmentosEnSelect(db, piezaId);
+    mostrarListaFragmentos(db, piezaId);
 
     alert('Fragmento agregado correctamente');
 
@@ -142,15 +203,7 @@ async function agregarFragmento() {
 }
 
 // ===== BORRAR FRAGMENTO =====
-async function borrarFragmento() {
-  const select = document.getElementById('sFragmento');
-  const fragmentoId = select.value;
-
-  if (!fragmentoId) {
-    alert('Selecciona un fragmento para borrar');
-    return;
-  }
-
+async function borrarFragmento(fragmentoId, piezaId) {
   if (!confirm('¿Estás seguro de que deseas borrar este fragmento?')) {
     return;
   }
@@ -161,8 +214,8 @@ async function borrarFragmento() {
     await tx.objectStore('fragmentos').delete(fragmentoId);
     await tx.done;
 
-    const piezaId = window.piezaIdActual;
     cargarFragmentosEnSelect(db, piezaId);
+    mostrarListaFragmentos(db, piezaId);
 
     alert('Fragmento borrado correctamente');
 
@@ -288,8 +341,7 @@ async function mostrarHistorial(piezaId) {
   try {
     const db = await abrirDB();
     const tx = db.transaction('sesiones', 'readonly');
-    const sesiones = await tx.objectStore('sesiones')
-      .getAll();
+    const sesiones = await tx.objectStore('sesiones').getAll();
 
     const sesionesFiltradasPorPieza = sesiones.filter(s => s.piezaId === piezaId);
     const historialDiv = document.getElementById('historial');
