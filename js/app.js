@@ -238,14 +238,15 @@ async function mostrarListadoPiezas() {
   if (vistaDetalle) vistaDetalle.style.display = 'none';
 
   try {
+    // Obtener piezas y sesiones frescas de la BD
     piezas = await obtenerPiezasDB();
+    const sesiones = await obtenerSesionesDB();
     const listaPiezas = document.getElementById('listaPiezas');
     const mensajeSinPiezas = document.getElementById('mensajeSinPiezas');
 
     if (!listaPiezas) return;
 
     // Ordenar por última sesión
-    const sesiones = await obtenerSesionesDB();
     piezas.sort((a, b) => {
       const ultimaSesionA = sesiones
         .filter(s => s.pieceId === a.id)
@@ -260,6 +261,7 @@ async function mostrarListadoPiezas() {
       return fechaB - fechaA;
     });
 
+    // Limpiar listado
     listaPiezas.innerHTML = '';
 
     if (piezas.length === 0) {
@@ -269,6 +271,7 @@ async function mostrarListadoPiezas() {
 
     if (mensajeSinPiezas) mensajeSinPiezas.style.display = 'none';
 
+    // Crear tarjetas de piezas
     piezas.forEach(pieza => {
       const tiempoTotal = sesiones
         .filter(s => s.pieceId === pieza.id)
@@ -280,10 +283,11 @@ async function mostrarListadoPiezas() {
       card.className = 'pieza-card';
       card.innerHTML = `
         <div class="pieza-info-contenedor">
-          <div class="pieza-titulo">${pieza.titulo}</div>
+          <div class="pieza-titulo">${pieza.titulo || 'Sin título'}</div>
           ${pieza.compositor ? `<div class="pieza-compositor">${pieza.compositor}</div>` : ''}
           <div class="pieza-info">
-            ${pieza.tonalidad ? `<strong>${pieza.tonalidad}</strong> | ` : ''}
+            ${pieza.tonalidad ? `<strong>${pieza.tonalidad}</strong>` : ''}
+            ${pieza.tonalidad && pieza.compas ? ' | ' : ''}
             ${pieza.compas ? `${pieza.compas}` : ''}
           </div>
           <div class="pieza-tiempo">Tiempo: ${tiempoFormato}</div>
@@ -299,9 +303,11 @@ async function mostrarListadoPiezas() {
     // Event listeners para eliminar
     document.querySelectorAll('.btn-eliminar').forEach(btn => {
       btn.addEventListener('click', async (e) => {
+        e.preventDefault();
         const id = e.target.dataset.id;
         if (confirm('¿Eliminar esta pieza?')) {
           await eliminarPiezaDB(id);
+          // Recargar el listado después de eliminar
           await mostrarListadoPiezas();
         }
       });
@@ -309,6 +315,7 @@ async function mostrarListadoPiezas() {
 
   } catch (error) {
     console.error('Error al mostrar listado:', error);
+    alert('Error al cargar el listado de piezas');
   }
 }
 
